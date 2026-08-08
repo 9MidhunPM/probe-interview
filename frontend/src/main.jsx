@@ -45,12 +45,16 @@ function Login({ onAuthenticated }) {
 function CandidateSetup({ onStart }) {
   const [candidates, setCandidates] = useState([]);
   const [raw, setRaw] = useState('');
+  const [selectedId, setSelectedId] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   useEffect(() => { request('/data/candidates.json').then((data) => setCandidates(data.candidates || [])).catch((err) => setError(err.message)); }, []);
   const choose = (id) => {
     const candidate = candidates.find((entry) => entry.member.id === id);
-    if (candidate) setRaw(JSON.stringify(candidate, null, 2));
+    if (candidate) {
+      setSelectedId(id);
+      setRaw(JSON.stringify(candidate, null, 2));
+    }
   };
   const start = async () => {
     try {
@@ -62,7 +66,7 @@ function CandidateSetup({ onStart }) {
       setLoading(false);
     }
   };
-  return <main className="setup-shell"><section className="setup-copy"><p className="kicker">A scene, not a script</p><h1>Set the room.</h1><p>Load a candidate history, then let the conversation reveal where their reasoning holds up.</p><a href="/classic">Open classic interface</a></section><section className="setup-card"><label>Load a sample<select defaultValue="" onChange={(event) => choose(event.target.value)}><option value="">Choose a candidate</option>{candidates.map((candidate) => <option key={candidate.member.id} value={candidate.member.id}>{candidate.member.name} · {candidate.member.jobRole}</option>)}</select></label><label>Candidate JSON<textarea value={raw} onChange={(event) => setRaw(event.target.value)} placeholder="Paste a complete candidate object" spellCheck="false" /></label><button onClick={start} disabled={loading}>{loading ? 'Preparing interview...' : 'Enter interview room'}</button><p className="error">{error}</p></section></main>;
+  return <main className="setup-shell"><section className="setup-copy"><div className="setup-art"><img src={asset('interview-room.png')} alt="Bright interview room" /><img src={asset('interviewer-idle.png')} alt="" /><img src={asset('candidate-idle.png')} alt="" /></div><p className="kicker">Personalized technical practice</p><h1>Enter prepared.<br />Leave with proof.</h1><p>Probe turns a candidate&apos;s actual learning history into a live technical interview, then shows the reasoning behind every next question.</p><div className="process-strip"><article><strong>1. Read the record</strong><span>Strengths, retries, skips, and role context set the agenda.</span></article><article><strong>2. Practice live</strong><span>Read, respond, and choose how deeply to probe each topic.</span></article><article><strong>3. Review the evidence</strong><span>Follow the agent trail and leave with focused feedback.</span></article></div><a href="/classic">Open classic interface</a></section><section className="setup-card"><header><p className="kicker">Choose a profile</p><h2>Who is interviewing?</h2><span>Select a candidate to load their interview context.</span></header><div className="candidate-grid">{candidates.map((candidate) => <button type="button" className={`candidate-card ${selectedId === candidate.member.id ? 'selected' : ''}`} key={candidate.member.id} onClick={() => choose(candidate.member.id)}><strong>{candidate.member.name}</strong><span>{candidate.member.jobRole}</span><small>{candidate.member.yearsExperience} years · {candidate.signals.missionsCompleted} missions</small></button>)}</div><details className="candidate-data"><summary>Review or edit candidate data</summary><label htmlFor="candidate-json">Candidate JSON<textarea id="candidate-json" name="candidate-json" value={raw} onChange={(event) => { setRaw(event.target.value); setSelectedId(''); }} placeholder="Paste a complete candidate object" spellCheck="false" /></label></details><button className="enter-room" type="button" onClick={start} disabled={loading || !raw}>{loading ? 'Preparing interview...' : 'Enter interview room'}</button><p className="error">{error}</p></section></main>;
 }
 
 function TranscriptPanel({ transcript }) {
@@ -70,7 +74,7 @@ function TranscriptPanel({ transcript }) {
 }
 
 function TraceModal({ entry, onClose }) {
-  return <div className="feedback-overlay" role="presentation"><section className="trace-modal" role="dialog" aria-modal="true" aria-labelledby="trace-title"><button className="modal-close" type="button" aria-label="Close agent output" onClick={onClose}>Close</button><p className="kicker">Live graph output</p><h2 id="trace-title">{entry.agent}</h2><pre>{JSON.stringify(entry.output, null, 2)}</pre></section></div>;
+  return <div className="feedback-overlay" role="presentation" onClick={onClose}><section className="trace-modal" role="dialog" aria-modal="true" aria-labelledby="trace-title" onClick={(event) => event.stopPropagation()}><button className="modal-close" type="button" aria-label="Close agent output" onClick={onClose}>Close</button><p className="kicker">Live graph output</p><h2 id="trace-title">{entry.agent}</h2><pre>{JSON.stringify(entry.output, null, 2)}</pre></section></div>;
 }
 
 function TraceSidebar({ trace, history, activeAgents, generationStatus, generationOutput, transcript }) {
@@ -89,7 +93,7 @@ function TraceSidebar({ trace, history, activeAgents, generationStatus, generati
 }
 
 function FeedbackModal({ feedback, onClose }) {
-  return <div className="feedback-overlay" role="presentation"><section className="feedback-modal" role="dialog" aria-modal="true" aria-labelledby="feedback-title"><button className="modal-close" type="button" aria-label="Close feedback" onClick={onClose}>Close</button><p className="kicker">Interview complete</p><h2 id="feedback-title">Session feedback</h2><p className="feedback-summary">{feedback.summary}</p><section><h3>Strengths</h3><ul>{feedback.strengths.map((item) => <li key={item}>{item}</li>)}</ul></section><section><h3>Gaps</h3><ul>{feedback.gaps.map((item) => <li key={item}>{item}</li>)}</ul></section><section><h3>Next steps</h3><ul>{(feedback.next || []).map((item) => <li key={item}>{item}</li>)}</ul></section></section></div>;
+  return <div className="feedback-overlay" role="presentation" onClick={onClose}><section className="feedback-modal" role="dialog" aria-modal="true" aria-labelledby="feedback-title" onClick={(event) => event.stopPropagation()}><button className="modal-close" type="button" aria-label="Close feedback" onClick={onClose}>Close</button><p className="kicker">Interview complete</p><h2 id="feedback-title">Session feedback</h2><p className="feedback-summary">{feedback.summary}</p><section><h3>Strengths</h3><ul>{feedback.strengths.map((item) => <li key={item}>{item}</li>)}</ul></section><section><h3>Gaps</h3><ul>{feedback.gaps.map((item) => <li key={item}>{item}</li>)}</ul></section><section><h3>Next steps</h3><ul>{(feedback.next || []).map((item) => <li key={item}>{item}</li>)}</ul></section></section></div>;
 }
 
 function InterviewStage({ candidate, response, phase, pending, busy, activeAgents, generationStatus, transcript, traceHistory, generationOutput, onGenerate, onSend, onNext, onInterviewerReady, onAdvanceToCandidate }) {
@@ -98,6 +102,7 @@ function InterviewStage({ candidate, response, phase, pending, busy, activeAgent
   const [candidateSpeech, setCandidateSpeech] = useState('');
   const [candidateText, setCandidateText] = useState('');
   const [candidateTyping, setCandidateTyping] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const [isCandidateEditing, setIsCandidateEditing] = useState(false);
   const [pose, setPose] = useState('idle');
   const [isTyping, setIsTyping] = useState(true);
@@ -154,8 +159,13 @@ function InterviewStage({ candidate, response, phase, pending, busy, activeAgent
     if (!draft.trim()) return;
     const answer = draft.trim();
     setIsCandidateEditing(false);
+    setIsSending(true);
     setCandidateText(answer);
-    await onSend(answer);
+    try {
+      await onSend(answer);
+    } finally {
+      setIsSending(false);
+    }
   };
   const advanceToInterviewer = () => {
     setPose('idle');
@@ -181,7 +191,7 @@ function InterviewStage({ candidate, response, phase, pending, busy, activeAgent
 
   const candidateImage = generationStatus === 'active' || isCandidateEditing ? 'candidate-thinking.png' : candidateTyping ? 'candidate-speaking.png' : pose === 'confident' ? 'candidate-confident.png' : pose === 'unsure' ? 'candidate-nervous.png' : pose === 'vague' ? 'candidate-vague.png' : 'candidate-idle.png';
   const interviewerImage = isTyping ? 'interviewer-speaking.png' : busy && generationStatus !== 'active' && phase === 'candidate' ? 'interviewer-thinking.png' : 'interviewer-idle.png';
-  const canRespond = phase === 'candidate' && !isTyping && !response.done;
+  const canRespond = phase === 'candidate' && !isTyping && !response.done && !isSending;
   const interviewerActive = phase === 'interviewer' || phase === 'interviewer-ready';
   const cameraFocus = focusedSpeaker || (interviewerActive ? 'interviewer' : 'candidate');
   const candidateCopy = candidateSpeech || (canRespond ? 'Choose a response style or write your own answer.' : 'Waiting for your turn...');
