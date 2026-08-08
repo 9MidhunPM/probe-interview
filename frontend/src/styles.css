@@ -36,7 +36,7 @@ button:disabled { cursor: wait; opacity: .55; }
 .candidate-panel .turn-label { padding: 0; }
 .turn-speech, .candidate-composer { position: relative; min-width: 0; max-width: min(100%, 1050px); padding: 16px 18px; border: 1px solid #9bc8bc; border-radius: 18px; color: #24484a; background: #eaf6f0; box-shadow: 0 8px 18px #3155571f; cursor: pointer; }
 .turn-speech::after, .candidate-composer::before { content: ''; position: absolute; width: 18px; height: 18px; background: inherit; transform: rotate(45deg); }
-.interviewer-panel .turn-speech::after { right: 10%; bottom: -10px; border-right: 1px solid #9bc8bc; border-bottom: 1px solid #9bc8bc; }
+.interviewer-panel .turn-speech::after { bottom: -10px; left: 10%; border-right: 1px solid #9bc8bc; border-bottom: 1px solid #9bc8bc; }
 .candidate-panel .turn-speech, .candidate-composer { border-color: #e7c5ad; color: #754544; background: #fff2e8; }
 .candidate-panel .turn-speech::after, .candidate-composer::before { top: -10px; right: 10%; border-top: 1px solid #e7c5ad; border-left: 1px solid #e7c5ad; }
 .candidate-composer { display: grid; gap: 7px; width: 100%; cursor: text; }
@@ -74,10 +74,12 @@ button:disabled { cursor: wait; opacity: .55; }
 .dock-heading p { color: var(--mint-dark); font-size: .74rem; font-weight: 900; letter-spacing: .11em; text-transform: uppercase; }
 .dock-heading span { color: var(--muted); font-size: .86rem; }
 .style-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-.style-action { display: grid; gap: 5px; }
-.style-grid button { min-height: 44px; border-color: #a7c9bd; border-radius: 12px; background: #e6f1e9; color: #24524a; font-size: .82rem; }
+.style-action { display: grid; gap: 2px; }
+.style-grid button { min-height: 36px; border-color: #a7c9bd; border-radius: 10px; background: #e6f1e9; color: #24524a; font-size: .78rem; }
 .style-grid button:hover, .style-grid button.selected { border-color: #3f9d7f; background: #c9eadb; }
-.style-action small, .field-description { color: var(--muted); font-size: .72rem; font-weight: 600; line-height: 1.35; }
+.style-action small { display: none; }
+.field-description { color: var(--muted); font-size: .72rem; font-weight: 600; line-height: 1.35; }
+.candidate-panel > .turn-speech { justify-self: end; margin-left: auto; }
 .send-answer, .next-dock button, .interviewer-dock button { justify-self: start; border-radius: 12px; box-shadow: 0 7px 14px #2c79652c; }
 .next-dock { grid-template-columns: 1fr auto; align-items: center; }
 .orchestration { display: flex; flex-direction: column; overflow: auto; padding: 22px 16px; color: #23444b; background: #eef6ef; border-left: 1px solid #b8d0c9; }
@@ -97,11 +99,11 @@ button:disabled { cursor: wait; opacity: .55; }
 .agent-row small { font-size: .66rem; text-transform: uppercase; letter-spacing: .06em; }
 .agent-row pre { max-height: 200px; overflow: auto; margin: 0; padding: 10px; border-top: 1px solid #c7ddd4; color: #31525a; font: 11px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; }
 @keyframes agent-pulse { to { box-shadow: inset 0 0 20px #58b99433; } }
-.transcript-panel { display: grid; gap: 9px; min-height: 170px; max-height: 300px; margin-top: 18px; padding: 12px; border: 1px solid #8abfae; border-radius: 12px; background: #fdfbf2; box-shadow: 0 10px 18px #31555714; }
+.transcript-panel { display: flex; flex: 1; flex-direction: column; gap: 9px; min-height: 170px; margin-top: 18px; padding: 12px; border: 1px solid #8abfae; border-radius: 12px; background: #fdfbf2; box-shadow: 0 10px 18px #31555714; }
 .transcript-panel header { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
 .transcript-panel h3 { font-size: .9rem; }
 .transcript-panel header span { color: var(--muted); font-size: .7rem; }
-.transcript-log { display: grid; gap: 8px; overflow: auto; padding-right: 4px; }
+.transcript-log { display: grid; flex: 1; gap: 8px; min-height: 0; overflow: auto; padding-right: 4px; }
 .transcript-message { width: min(90%, 250px); padding: 8px 10px; border-radius: 11px; }
 .transcript-message.from-interviewer { justify-self: start; color: #24586a; background: #e8f6fa; }
 .transcript-message.from-candidate { justify-self: end; color: #754544; background: #fff2e8; }
