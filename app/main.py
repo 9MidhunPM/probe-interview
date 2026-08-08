@@ -40,7 +40,8 @@ def interview(request: InterviewRequest) -> InterviewResponse:
         resume_config = interview_graph.update_state(config, {"candidate_message": request.message}, as_node="interviewer")
         result = interview_graph.invoke(None, resume_config)
         if result.get("ready_for_evaluation"):
-            result = interview_graph.invoke(None, resume_config)
+            # Resume the latest checkpoint, which is now queued for Evaluator.
+            result = interview_graph.invoke(None, config)
 
     feedback = result.get("feedback")
     return InterviewResponse(reply=result["reply"], done=result.get("done", False), feedback=Feedback.model_validate(feedback) if feedback else None)
