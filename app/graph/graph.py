@@ -76,6 +76,7 @@ def interviewer_node(state: InterviewState) -> dict:
         last_review,
         state["candidate"]["member"]["name"],
         state.get("low_effort_count", 0),
+        state.get("probed_topic_index") == state.get("current_topic_index", 0),
     )
     update = {
         "transcript": transcript + [{"role": "interviewer", "content": question}],
@@ -100,16 +101,18 @@ def response_reviewer_node(state: InterviewState) -> dict:
         entry["content"] for entry in reversed(transcript[:-1]) if entry["role"] == "interviewer"
     )
     topic_index = state.get("current_topic_index", 0)
+    reviewed_topic = state["topic_queue"][topic_index]
     review = review_answer(
         get_reasoning_model_provider(),
         question=question,
         answer=answer,
-        topic=state["topic_queue"][topic_index],
+        topic=reviewed_topic,
         low_effort_count=(
             state.get("low_effort_count", 0)
             if state.get("low_effort_topic_index") == topic_index
             else 0
         ),
+        probe_available=state.get("probed_topic_index") != topic_index,
     )
     low_effort_count = (
         state.get("low_effort_count", 0) + 1
@@ -120,6 +123,7 @@ def response_reviewer_node(state: InterviewState) -> dict:
     if review.signal == "advance":
         topic_index += 1
         low_effort_count = 0
+    review_data = review.model_dump()
     ready_for_evaluation = (
         review.signal == "end"
         or state["turn_count"] >= _max_turns()
@@ -127,9 +131,11 @@ def response_reviewer_node(state: InterviewState) -> dict:
     )
     update = {
         "current_topic_index": topic_index,
-        "last_review": review.model_dump(),
+        "last_review": review_data,
+        "review_history": [{"topic": reviewed_topic, "review": review_data}],
         "low_effort_count": low_effort_count,
         "low_effort_topic_index": topic_index if low_effort_count else None,
+        "probed_topic_index": topic_index if review.signal == "probe" else state.get("probed_topic_index"),
         "awaiting_review": False,
         "ready_for_evaluation": ready_for_evaluation,
     }
@@ -163,6 +169,7 @@ def evaluator_node(state: InterviewState) -> dict:
         get_orchestrator_model_provider(),
         state.get("transcript", []),
         state.get("contradictions", []),
+        state.get("review_history", []),
     )
     update = {
         "reply": evaluation.closing,
