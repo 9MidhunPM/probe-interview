@@ -15,11 +15,11 @@ class ModelProvider(Protocol):
 StrongModelProvider = ModelProvider
 
 
-def _get_provider(provider: str) -> ModelProvider:
+def _get_provider(provider: str, model: str | None = None) -> ModelProvider:
     if provider == "openai":
         from app.providers.openai_client import OpenAIProvider
 
-        return OpenAIProvider()
+        return OpenAIProvider(model=model)
     if provider == "groq":
         from app.providers.groq_client import GroqProvider
 
@@ -31,11 +31,18 @@ def _get_provider(provider: str) -> ModelProvider:
     raise RuntimeError("Provider must be 'openai', 'groq', or 'gemini'.")
 
 
-def get_strong_model_provider() -> StrongModelProvider:
-    provider = os.getenv("STRONG_PROVIDER", "openai").lower()
-    return _get_provider(provider)
+def _get_role_provider(role: str, model_env: str) -> ModelProvider:
+    provider = os.getenv(f"{role}_PROVIDER", "openai").lower()
+    return _get_provider(provider, os.getenv(model_env))
 
 
-def get_setup_model_provider() -> ModelProvider:
-    """Use Groq by default; Gemini is an env-selectable fallback."""
-    return _get_provider(os.getenv("SETUP_PROVIDER", "groq").lower())
+def get_extraction_model_provider() -> ModelProvider:
+    return _get_role_provider("EXTRACTION", "OPENAI_EXTRACTION_MODEL")
+
+
+def get_reasoning_model_provider() -> ModelProvider:
+    return _get_role_provider("REASONING", "OPENAI_REASONING_MODEL")
+
+
+def get_orchestrator_model_provider() -> ModelProvider:
+    return _get_role_provider("ORCHESTRATOR", "OPENAI_ORCHESTRATOR_MODEL")

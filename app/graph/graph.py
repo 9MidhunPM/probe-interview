@@ -16,26 +16,30 @@ from app.agents.topic_planner import plan_topics
 from app.agents.weaknesses_finder import find_weaknesses
 from app.graph.routing import route_after_interviewer, route_after_reviewer
 from app.graph.state import InterviewState
-from app.providers.base import get_setup_model_provider, get_strong_model_provider
+from app.providers.base import (
+    get_extraction_model_provider,
+    get_orchestrator_model_provider,
+    get_reasoning_model_provider,
+)
 
 logger = logging.getLogger("probe.graph")
 
 
 def strengths_finder_node(state: InterviewState) -> dict:
-    strengths = find_strengths(get_setup_model_provider(), state["candidate"])
+    strengths = find_strengths(get_extraction_model_provider(), state["candidate"])
     logger.info("agent=StrengthsFinder output=%s", strengths)
     return {"strengths": strengths}
 
 
 def weaknesses_finder_node(state: InterviewState) -> dict:
-    weaknesses = find_weaknesses(get_setup_model_provider(), state["candidate"])
+    weaknesses = find_weaknesses(get_extraction_model_provider(), state["candidate"])
     logger.info("agent=WeaknessesFinder output=%s", weaknesses)
     return {"weaknesses": weaknesses}
 
 
 def topic_planner_node(state: InterviewState) -> dict:
     topic_queue = plan_topics(
-        get_setup_model_provider(),
+        get_reasoning_model_provider(),
         state["candidate"],
         state["strengths"],
         state["weaknesses"],
@@ -66,7 +70,7 @@ def interviewer_node(state: InterviewState) -> dict:
     topic = topic_queue[state.get("current_topic_index", 0)]
     last_review = state.get("last_review", {})
     question = generate_question(
-        get_strong_model_provider(),
+        get_orchestrator_model_provider(),
         full_transcript,
         topic,
         last_review,
@@ -97,7 +101,7 @@ def response_reviewer_node(state: InterviewState) -> dict:
     )
     topic_index = state.get("current_topic_index", 0)
     review = review_answer(
-        get_setup_model_provider(),
+        get_reasoning_model_provider(),
         question=question,
         answer=answer,
         topic=state["topic_queue"][topic_index],
@@ -137,7 +141,7 @@ def consistency_checker_node(state: InterviewState) -> dict:
     transcript = state["transcript"]
     answer = next(entry["content"] for entry in reversed(transcript) if entry["role"] == "candidate")
     result = check_consistency(
-        get_setup_model_provider(),
+        get_reasoning_model_provider(),
         earlier_transcript=transcript[:-1],
         latest_answer=answer,
     )
@@ -156,7 +160,7 @@ def consistency_checker_node(state: InterviewState) -> dict:
 
 def evaluator_node(state: InterviewState) -> dict:
     evaluation = generate_evaluation(
-        get_strong_model_provider(),
+        get_orchestrator_model_provider(),
         state.get("transcript", []),
         state.get("contradictions", []),
     )

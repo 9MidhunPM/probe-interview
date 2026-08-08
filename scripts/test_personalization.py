@@ -14,7 +14,7 @@ sys.path.insert(0, str(ROOT))
 from app.agents.strengths_finder import find_strengths
 from app.agents.topic_planner import plan_topics
 from app.agents.weaknesses_finder import find_weaknesses
-from app.providers.base import get_setup_model_provider
+from app.providers.base import get_extraction_model_provider, get_reasoning_model_provider
 
 load_dotenv()
 
@@ -24,8 +24,7 @@ candidates = json.loads(
 
 for candidate_id in ("CAND-003", "CAND-010"):
     candidate = next(item for item in candidates if item["member"]["id"] == candidate_id)
-    provider = get_setup_model_provider()
-    strengths = find_strengths(provider, candidate)
-    weaknesses = find_weaknesses(provider, candidate)
-    topic_queue = plan_topics(provider, candidate, strengths, weaknesses)
+    strengths = find_strengths(get_extraction_model_provider(), candidate)
+    weaknesses = find_weaknesses(get_extraction_model_provider(), candidate)
+    topic_queue = plan_topics(get_reasoning_model_provider(), candidate, strengths, weaknesses)
     print(json.dumps({"candidate": candidate_id, "topic_queue": topic_queue}, indent=2))

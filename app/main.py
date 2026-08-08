@@ -16,6 +16,7 @@ from app.graph.graph import interview_graph
 from app.auth import access_gate
 from app.limiting import new_session_limiter
 from app.models import Feedback, InterviewRequest, InterviewResponse, LoginRequest
+from app.providers.errors import ProviderUnavailableError
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -44,6 +45,14 @@ async def require_access(request: Request, call_next):
     if request.url.path.startswith("/api/") or request.url.path.startswith("/data/"):
         return JSONResponse({"detail": "Authentication required."}, status_code=status.HTTP_401_UNAUTHORIZED)
     return FileResponse(ROOT / "app" / "static" / "login.html")
+
+@app.exception_handler(ProviderUnavailableError)
+async def provider_unavailable(_: Request, __: ProviderUnavailableError):
+    return PlainTextResponse(
+        "The interview model is temporarily unavailable. Please retry shortly.",
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        headers={"Retry-After": "5"},
+    )
 
 @app.post(
     "/api/interview",
