@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -86,3 +87,15 @@ class LoginRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     password: str = Field(min_length=1)
+
+
+class SimulateAnswerRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    question: str = Field(min_length=1, max_length=4000)
+    candidate: Candidate
+    style: Literal["confident", "unsure", "vague"]
+
+
+class SimulateAnswerResponse(BaseModel):
+    answer: str
