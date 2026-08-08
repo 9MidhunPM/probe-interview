@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import ReactMarkdown from 'react-markdown';
 import './styles.css';
@@ -98,10 +98,12 @@ function InterviewStage({ candidate, response, phase, pending, busy, activeAgent
   const [candidateSpeech, setCandidateSpeech] = useState('');
   const [candidateText, setCandidateText] = useState('');
   const [candidateTyping, setCandidateTyping] = useState(false);
+  const [isCandidateEditing, setIsCandidateEditing] = useState(false);
   const [pose, setPose] = useState('idle');
   const [isTyping, setIsTyping] = useState(true);
   const [focusedSpeaker, setFocusedSpeaker] = useState(null);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const candidateEditingTimer = useRef(null);
 
   useEffect(() => {
     setTypedReply('');
@@ -126,19 +128,21 @@ function InterviewStage({ candidate, response, phase, pending, busy, activeAgent
     setCandidateTyping(true);
     let cursor = 0;
     const timer = window.setInterval(() => {
-      cursor += 3;
+      cursor += 2;
       setCandidateSpeech(candidateText.slice(0, cursor));
       if (cursor >= candidateText.length) {
         window.clearInterval(timer);
         setCandidateTyping(false);
       }
-    }, 16);
+    }, 24);
     return () => window.clearInterval(timer);
   }, [candidateText]);
 
   useEffect(() => {
     if (response.done && response.feedback) setFeedbackOpen(true);
   }, [response.done, response.feedback]);
+
+  useEffect(() => () => window.clearTimeout(candidateEditingTimer.current), []);
 
   const generate = async (style) => {
     setPose(style);
@@ -149,6 +153,7 @@ function InterviewStage({ candidate, response, phase, pending, busy, activeAgent
   const send = async () => {
     if (!draft.trim()) return;
     const answer = draft.trim();
+    setIsCandidateEditing(false);
     setCandidateText(answer);
     await onSend(answer);
   };
@@ -165,14 +170,22 @@ function InterviewStage({ candidate, response, phase, pending, busy, activeAgent
       toggleFocus(speaker);
     }
   };
+  const updateDraft = (event) => {
+    setDraft(event.target.value);
+    setCandidateSpeech(event.target.value);
+    setPose('idle');
+    setIsCandidateEditing(true);
+    window.clearTimeout(candidateEditingTimer.current);
+    candidateEditingTimer.current = window.setTimeout(() => setIsCandidateEditing(false), 2000);
+  };
 
-  const candidateImage = candidateTyping ? 'candidate-speaking.png' : busy && phase === 'candidate' ? 'candidate-thinking.png' : pose === 'confident' ? 'candidate-confident.png' : pose === 'unsure' ? 'candidate-nervous.png' : pose === 'vague' ? 'candidate-vague.png' : 'candidate-idle.png';
-  const interviewerImage = isTyping ? 'interviewer-speaking.png' : 'interviewer-idle.png';
+  const candidateImage = generationStatus === 'active' || isCandidateEditing ? 'candidate-thinking.png' : candidateTyping ? 'candidate-speaking.png' : pose === 'confident' ? 'candidate-confident.png' : pose === 'unsure' ? 'candidate-nervous.png' : pose === 'vague' ? 'candidate-vague.png' : 'candidate-idle.png';
+  const interviewerImage = isTyping ? 'interviewer-speaking.png' : busy && generationStatus !== 'active' && phase === 'candidate' ? 'interviewer-thinking.png' : 'interviewer-idle.png';
   const canRespond = phase === 'candidate' && !isTyping && !response.done;
   const interviewerActive = phase === 'interviewer' || phase === 'interviewer-ready';
   const cameraFocus = focusedSpeaker || (interviewerActive ? 'interviewer' : 'candidate');
   const candidateCopy = candidateSpeech || (canRespond ? 'Choose a response style or write your own answer.' : 'Waiting for your turn...');
-  const candidateTurn = canRespond ? <label className="candidate-composer"><span>Compose your response</span><small>Generate a starting point or write directly here, then send when ready.</small><textarea name="candidate-response" value={draft} onFocus={() => setFocusedSpeaker('candidate')} onChange={(event) => { setDraft(event.target.value); setCandidateSpeech(event.target.value); setPose('idle'); }} placeholder="Write or edit the generated answer" disabled={busy} /></label> : <div className="turn-speech" role="button" tabIndex="0" aria-pressed={cameraFocus === 'candidate'} onClick={() => toggleFocus('candidate')} onKeyDown={(event) => handleBubbleKeyDown(event, 'candidate')}><MarkdownContent>{candidateCopy}</MarkdownContent></div>;
+  const candidateTurn = canRespond ? <label className="candidate-composer"><span>Compose your response</span><small>Generate a starting point or write directly here, then send when ready.</small><textarea name="candidate-response" value={draft} onFocus={() => setFocusedSpeaker('candidate')} onChange={updateDraft} placeholder="Write or edit the generated answer" disabled={busy} /></label> : <div className="turn-speech" role="button" tabIndex="0" aria-pressed={cameraFocus === 'candidate'} onClick={() => toggleFocus('candidate')} onKeyDown={(event) => handleBubbleKeyDown(event, 'candidate')}><MarkdownContent>{candidateCopy}</MarkdownContent></div>;
 
   return <main className="scene-app"><header className="app-header"><a href="/classic">Classic</a><span>Probe / live practice</span><strong>{candidate.member.name}</strong></header><div className="app-shell"><section className="scene-pane"><section className={`turn-panel interviewer-panel ${cameraFocus === 'interviewer' ? 'is-focused' : 'is-receded'}`}><p className="turn-label">Interviewer</p><div className="turn-speech" role="button" tabIndex="0" aria-pressed={cameraFocus === 'interviewer'} onClick={() => toggleFocus('interviewer')} onKeyDown={(event) => handleBubbleKeyDown(event, 'interviewer')}><MarkdownContent>{typedReply || '...'}</MarkdownContent></div></section><section className="scene-frame" aria-label="Interview room"><div className={`scene-camera camera-${cameraFocus}`}><img className="scene-backdrop" src={asset('interview-room.png')} alt="" /><div className={`speaker interviewer-speaker ${interviewerActive ? 'is-active' : 'is-idle'}`}><img className="scene-character interviewer-character" src={asset(interviewerImage)} alt="Interviewer" /></div><div className={`speaker candidate-speaker ${interviewerActive ? 'is-idle' : 'is-active'}`}><img className="scene-character candidate-character" src={asset(candidateImage)} alt="Candidate" /></div></div></section><section className={`turn-panel candidate-panel ${cameraFocus === 'candidate' ? 'is-focused' : 'is-receded'}`}><p className="turn-label">{candidate.member.name}</p>{candidateTurn}{phase === 'interviewer-ready' && <section className="interviewer-dock"><span>Read the question, then move to the candidate response.</span><button onClick={onAdvanceToCandidate}>Next: prepare your answer</button></section>}{canRespond && <section className="response-dock"><div className="dock-heading"><p>Response style</p><span>Generate a starting point, then edit it in the composer above.</span></div><div className="style-grid">{responseStyles.map(([style, label, description]) => <div className="style-action" key={style}><button type="button" className={pose === style ? 'selected' : ''} onClick={() => generate(style)} disabled={busy}>{label}</button><small>{description}</small></div>)}</div><button className="send-answer" disabled={busy || !draft.trim()} onClick={send}>Send answer</button></section>}{phase === 'candidate-complete' && <section className="next-dock"><p>Answer sent. Review the candidate response before continuing.</p><button onClick={advanceToInterviewer} disabled={!pending}>Next: hear the interviewer</button></section>}</section></section><TraceSidebar trace={pending?.trace || response.trace} history={traceHistory} activeAgents={activeAgents} generationStatus={generationStatus} generationOutput={generationOutput} transcript={transcript} /></div>{feedbackOpen && response.feedback && <FeedbackModal feedback={response.feedback} onClose={() => setFeedbackOpen(false)} />}</main>;
 }
