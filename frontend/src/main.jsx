@@ -69,23 +69,30 @@ function TranscriptPanel({ transcript }) {
   return <section className="transcript-panel" aria-label="Interview transcript"><header><h3>Transcript</h3><span>{transcript.length} turns</span></header><div className="transcript-log">{transcript.map((turn, index) => <div className={`transcript-message ${turn.speaker === 'Interviewer' ? 'from-interviewer' : 'from-candidate'}`} key={`${turn.speaker}-${index}`}><strong>{turn.speaker}</strong><p>{turn.message}</p></div>)}</div></section>;
 }
 
-function TraceSidebar({ trace, activeAgents, generationStatus, transcript }) {
-  const [expanded, setExpanded] = useState(null);
-  const entries = Object.fromEntries((trace || []).map((entry) => [entry.agent, entry]));
+function TraceModal({ entry, onClose }) {
+  return <div className="feedback-overlay" role="presentation"><section className="trace-modal" role="dialog" aria-modal="true" aria-labelledby="trace-title"><button className="modal-close" type="button" aria-label="Close agent output" onClick={onClose}>Close</button><p className="kicker">Live graph output</p><h2 id="trace-title">{entry.agent}</h2><pre>{JSON.stringify(entry.output, null, 2)}</pre></section></div>;
+}
+
+function TraceSidebar({ trace, history, activeAgents, generationStatus, generationOutput, transcript }) {
+  const [selectedEntry, setSelectedEntry] = useState(null);
+  const currentEntries = Object.fromEntries((trace || []).map((entry) => [entry.agent, entry]));
+  const generatedEntry = generationOutput ? { agent: 'Answer Generator', output: { answer: generationOutput } } : null;
   return <aside className="orchestration"><header><p className="kicker">Live graph</p><h2>Reasoning trail</h2><span>{trace?.length || 0} agents this turn</span></header><div className="agent-rail">{agents.map((agent) => {
-    const entry = entries[agent];
     const isGenerator = agent === 'Answer Generator';
+    const currentEntry = currentEntries[agent];
+    const entry = currentEntry || history[agent] || (isGenerator ? generatedEntry : null);
     const active = activeAgents.includes(agent) || (isGenerator && generationStatus === 'active');
-    const complete = Boolean(entry) || (isGenerator && generationStatus === 'complete');
-    return <section className={`agent-row ${complete ? 'complete' : ''} ${active ? 'active' : ''}`} key={agent}><button onClick={() => entry && setExpanded(expanded === agent ? null : agent)} disabled={!entry}><span className="agent-dot" /><strong>{agent}</strong><small>{active ? 'working' : complete ? 'complete' : 'idle'}</small></button>{entry && expanded === agent && <pre>{JSON.stringify(entry.output, null, 2)}</pre>}</section>;
-  })}</div><TranscriptPanel transcript={transcript} /></aside>;
+    const complete = Boolean(currentEntry) || (isGenerator && generationStatus === 'complete');
+    const state = active ? 'working' : complete ? 'complete' : entry ? 'available' : 'idle';
+    return <section className={`agent-row ${entry ? 'complete' : ''} ${active ? 'active' : ''}`} key={agent}><button type="button" onClick={() => entry && setSelectedEntry(entry)} disabled={!entry}><span className="agent-dot" /><strong>{agent}</strong><small>{state}</small></button></section>;
+  })}</div><TranscriptPanel transcript={transcript} />{selectedEntry && <TraceModal entry={selectedEntry} onClose={() => setSelectedEntry(null)} />}</aside>;
 }
 
 function FeedbackModal({ feedback, onClose }) {
   return <div className="feedback-overlay" role="presentation"><section className="feedback-modal" role="dialog" aria-modal="true" aria-labelledby="feedback-title"><button className="modal-close" type="button" aria-label="Close feedback" onClick={onClose}>Close</button><p className="kicker">Interview complete</p><h2 id="feedback-title">Session feedback</h2><p className="feedback-summary">{feedback.summary}</p><section><h3>Strengths</h3><ul>{feedback.strengths.map((item) => <li key={item}>{item}</li>)}</ul></section><section><h3>Gaps</h3><ul>{feedback.gaps.map((item) => <li key={item}>{item}</li>)}</ul></section><section><h3>Next steps</h3><ul>{(feedback.next || []).map((item) => <li key={item}>{item}</li>)}</ul></section></section></div>;
 }
 
-function InterviewStage({ candidate, response, phase, pending, busy, activeAgents, generationStatus, transcript, onGenerate, onSend, onNext, onInterviewerReady, onAdvanceToCandidate }) {
+function InterviewStage({ candidate, response, phase, pending, busy, activeAgents, generationStatus, transcript, traceHistory, generationOutput, onGenerate, onSend, onNext, onInterviewerReady, onAdvanceToCandidate }) {
   const [typedReply, setTypedReply] = useState('');
   const [draft, setDraft] = useState('');
   const [candidateSpeech, setCandidateSpeech] = useState('');
@@ -167,7 +174,7 @@ function InterviewStage({ candidate, response, phase, pending, busy, activeAgent
   const candidateCopy = candidateSpeech || (canRespond ? 'Choose a response style or write your own answer.' : 'Waiting for your turn...');
   const candidateTurn = canRespond ? <label className="candidate-composer"><span>Compose your response</span><small>Generate a starting point or write directly here, then send when ready.</small><textarea name="candidate-response" value={draft} onFocus={() => setFocusedSpeaker('candidate')} onChange={(event) => { setDraft(event.target.value); setCandidateSpeech(event.target.value); setPose('idle'); }} placeholder="Write or edit the generated answer" disabled={busy} /></label> : <div className="turn-speech" role="button" tabIndex="0" aria-pressed={cameraFocus === 'candidate'} onClick={() => toggleFocus('candidate')} onKeyDown={(event) => handleBubbleKeyDown(event, 'candidate')}><MarkdownContent>{candidateCopy}</MarkdownContent></div>;
 
-  return <main className="scene-app"><header className="app-header"><a href="/classic">Classic</a><span>Probe / live practice</span><strong>{candidate.member.name}</strong></header><div className="app-shell"><section className="scene-pane"><section className={`turn-panel interviewer-panel ${cameraFocus === 'interviewer' ? 'is-focused' : 'is-receded'}`}><p className="turn-label">Interviewer</p><div className="turn-speech" role="button" tabIndex="0" aria-pressed={cameraFocus === 'interviewer'} onClick={() => toggleFocus('interviewer')} onKeyDown={(event) => handleBubbleKeyDown(event, 'interviewer')}><MarkdownContent>{typedReply || '...'}</MarkdownContent></div></section><section className="scene-frame" aria-label="Interview room"><div className={`scene-camera camera-${cameraFocus}`}><img className="scene-backdrop" src={asset('interview-room.png')} alt="" /><div className={`speaker interviewer-speaker ${interviewerActive ? 'is-active' : 'is-idle'}`}><img className="scene-character interviewer-character" src={asset(interviewerImage)} alt="Interviewer" /></div><div className={`speaker candidate-speaker ${interviewerActive ? 'is-idle' : 'is-active'}`}><img className="scene-character candidate-character" src={asset(candidateImage)} alt="Candidate" /></div></div></section><section className={`turn-panel candidate-panel ${cameraFocus === 'candidate' ? 'is-focused' : 'is-receded'}`}><p className="turn-label">{candidate.member.name}</p>{candidateTurn}{phase === 'interviewer-ready' && <section className="interviewer-dock"><span>Read the question, then move to the candidate response.</span><button onClick={onAdvanceToCandidate}>Next: prepare your answer</button></section>}{canRespond && <section className="response-dock"><div className="dock-heading"><p>Response style</p><span>Generate a starting point, then edit it in the composer above.</span></div><div className="style-grid">{responseStyles.map(([style, label, description]) => <div className="style-action" key={style}><button type="button" className={pose === style ? 'selected' : ''} onClick={() => generate(style)} disabled={busy}>{label}</button><small>{description}</small></div>)}</div><button className="send-answer" disabled={busy || !draft.trim()} onClick={send}>Send answer</button></section>}{phase === 'candidate-complete' && <section className="next-dock"><p>Answer sent. Review the candidate response before continuing.</p><button onClick={advanceToInterviewer} disabled={!pending}>Next: hear the interviewer</button></section>}</section></section><TraceSidebar trace={pending?.trace || response.trace} activeAgents={activeAgents} generationStatus={generationStatus} transcript={transcript} /></div>{feedbackOpen && response.feedback && <FeedbackModal feedback={response.feedback} onClose={() => setFeedbackOpen(false)} />}</main>;
+  return <main className="scene-app"><header className="app-header"><a href="/classic">Classic</a><span>Probe / live practice</span><strong>{candidate.member.name}</strong></header><div className="app-shell"><section className="scene-pane"><section className={`turn-panel interviewer-panel ${cameraFocus === 'interviewer' ? 'is-focused' : 'is-receded'}`}><p className="turn-label">Interviewer</p><div className="turn-speech" role="button" tabIndex="0" aria-pressed={cameraFocus === 'interviewer'} onClick={() => toggleFocus('interviewer')} onKeyDown={(event) => handleBubbleKeyDown(event, 'interviewer')}><MarkdownContent>{typedReply || '...'}</MarkdownContent></div></section><section className="scene-frame" aria-label="Interview room"><div className={`scene-camera camera-${cameraFocus}`}><img className="scene-backdrop" src={asset('interview-room.png')} alt="" /><div className={`speaker interviewer-speaker ${interviewerActive ? 'is-active' : 'is-idle'}`}><img className="scene-character interviewer-character" src={asset(interviewerImage)} alt="Interviewer" /></div><div className={`speaker candidate-speaker ${interviewerActive ? 'is-idle' : 'is-active'}`}><img className="scene-character candidate-character" src={asset(candidateImage)} alt="Candidate" /></div></div></section><section className={`turn-panel candidate-panel ${cameraFocus === 'candidate' ? 'is-focused' : 'is-receded'}`}><p className="turn-label">{candidate.member.name}</p>{candidateTurn}{phase === 'interviewer-ready' && <section className="interviewer-dock"><span>Read the question, then move to the candidate response.</span><button onClick={onAdvanceToCandidate}>Next: prepare your answer</button></section>}{canRespond && <section className="response-dock"><div className="dock-heading"><p>Response style</p><span>Generate a starting point, then edit it in the composer above.</span></div><div className="style-grid">{responseStyles.map(([style, label, description]) => <div className="style-action" key={style}><button type="button" className={pose === style ? 'selected' : ''} onClick={() => generate(style)} disabled={busy}>{label}</button><small>{description}</small></div>)}</div><button className="send-answer" disabled={busy || !draft.trim()} onClick={send}>Send answer</button></section>}{phase === 'candidate-complete' && <section className="next-dock"><p>Answer sent. Review the candidate response before continuing.</p><button onClick={advanceToInterviewer} disabled={!pending}>Next: hear the interviewer</button></section>}</section></section><TraceSidebar trace={pending?.trace || response.trace} history={traceHistory} activeAgents={activeAgents} generationStatus={generationStatus} generationOutput={generationOutput} transcript={transcript} /></div>{feedbackOpen && response.feedback && <FeedbackModal feedback={response.feedback} onClose={() => setFeedbackOpen(false)} />}</main>;
 }
 
 function App() {
@@ -180,6 +187,8 @@ function App() {
   const [busy, setBusy] = useState(false);
   const [activeAgents, setActiveAgents] = useState([]);
   const [generationStatus, setGenerationStatus] = useState('idle');
+  const [generationOutput, setGenerationOutput] = useState('');
+  const [traceHistory, setTraceHistory] = useState({});
   const [transcript, setTranscript] = useState([]);
   const [error, setError] = useState('');
   useEffect(() => { request('/api/session').then(() => setAuth('yes')).catch(() => setAuth('no')); }, []);
@@ -188,6 +197,7 @@ function App() {
     const id = crypto.randomUUID();
     setBusy(true);
     setGenerationStatus('idle');
+    setGenerationOutput('');
     setActiveAgents(['Strengths Finder', 'Weaknesses Finder', 'Topic Planner', 'Interviewer']);
     try {
       const next = await request('/api/interview', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sessionId: id, candidate: selected }) });
@@ -196,6 +206,7 @@ function App() {
       setResponse(next);
       setPhase('interviewer');
       setTranscript([{ speaker: 'Interviewer', message: next.reply }]);
+      setTraceHistory(Object.fromEntries((next.trace || []).map((entry) => [entry.agent, entry])));
     } catch (err) {
       setError(err.message);
     } finally {
@@ -210,6 +221,7 @@ function App() {
     try {
       const result = await request('/api/simulate-answer', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ question: response.reply, candidate, style }) });
       setGenerationStatus('complete');
+      setGenerationOutput(result.answer);
       return result.answer;
     } catch (err) {
       setGenerationStatus('idle');
@@ -228,6 +240,7 @@ function App() {
     try {
       const next = await request('/api/interview', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sessionId, message: answer }) });
       setPending(next);
+      setTraceHistory((current) => ({ ...current, ...Object.fromEntries((next.trace || []).map((entry) => [entry.agent, entry])) }));
       setPhase('candidate-complete');
     } catch (err) {
       setError(err.message);
@@ -247,7 +260,7 @@ function App() {
   if (auth === 'checking') return <main className="loading">Opening interview room...</main>;
   if (auth === 'no') return <Login onAuthenticated={() => setAuth('yes')} />;
   if (!response) return <CandidateSetup onStart={start} />;
-  return <><InterviewStage candidate={candidate} response={response} pending={pending} phase={phase} busy={busy} activeAgents={activeAgents} generationStatus={generationStatus} transcript={transcript} onGenerate={generate} onSend={send} onNext={next} onInterviewerReady={() => setPhase((current) => current === 'interviewer' && !response.done ? 'interviewer-ready' : current)} onAdvanceToCandidate={() => setPhase('candidate')} />{error && <p className="toast" role="alert">{error}</p>}</>;
+  return <><InterviewStage candidate={candidate} response={response} pending={pending} phase={phase} busy={busy} activeAgents={activeAgents} generationStatus={generationStatus} transcript={transcript} traceHistory={traceHistory} generationOutput={generationOutput} onGenerate={generate} onSend={send} onNext={next} onInterviewerReady={() => setPhase((current) => current === 'interviewer' && !response.done ? 'interviewer-ready' : current)} onAdvanceToCandidate={() => setPhase('candidate')} />{error && <p className="toast" role="alert">{error}</p>}</>;
 }
 
 createRoot(document.getElementById('root')).render(<App />);
