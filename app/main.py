@@ -6,7 +6,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request, status
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -25,6 +25,13 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 ROOT = Path(__file__).parent.parent
 app.mount("/data", StaticFiles(directory=ROOT / "data"), name="data")
+
+
+@app.middleware("http")
+async def discourage_indexing(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Robots-Tag"] = "noindex, nofollow, noarchive"
+    return response
 
 @app.post(
     "/api/interview",
@@ -89,3 +96,8 @@ def interview(request: Request, payload: InterviewRequest) -> InterviewResponse:
 @app.get("/", include_in_schema=False)
 def frontend() -> FileResponse:
     return FileResponse(ROOT / "app" / "static" / "index.html")
+
+
+@app.get("/robots.txt", include_in_schema=False)
+def robots() -> PlainTextResponse:
+    return PlainTextResponse("User-agent: *\nDisallow: /\n")
