@@ -6,7 +6,7 @@ keyed by the caller's `sessionId`.
 
 ## Current status
 
-Phase 4 is implemented. Strengths Finder, Weaknesses Finder, and Topic Planner
+Phase 7 is implemented. Strengths Finder, Weaknesses Finder, and Topic Planner
 run once at session start through Groq, then the OpenAI Interviewer asks from
 the resulting role- and evidence-based topic queue. Groq Response Reviewer
 grades every answer and routes a harder follow-up, simpler rephrase, next topic,
@@ -16,14 +16,14 @@ pauses after each question and resumes when the next candidate message is inject
 
 Phase 5 hardening is active: per-IP request and new-session limits, message
 length validation, agent output-token caps, and prompt-injection boundaries.
-The frontend and deployment remain in later phases.
+The minimal browser UI is active at `/`; deployment remains intentionally out of
+scope until Phase 6 is explicitly approved.
 
 ## Run locally
 
-1. Create and activate a virtual environment.
-2. Install dependencies with `pip install -r requirements.txt`.
+1. Install dependencies with `python3 -m pip install --break-system-packages -r requirements.txt`.
 3. Copy `.env.example` to `.env`, then set the OpenAI, Groq, and Gemini keys.
-4. Start the server with `uvicorn app.main:app --reload`.
+4. Start the server with `python3 -m uvicorn app.main:app --reload`.
 
 Set `MAX_TURNS=2` while exercising the short examples below. The default is 14
 candidate answers per interview.
@@ -51,3 +51,10 @@ curl -sS -X POST http://127.0.0.1:8000/api/interview \
 ```
 
 The last request returns the final feedback when `MAX_TURNS=2`.
+
+## Browser UI
+
+Open `http://127.0.0.1:8000/` after starting the server. Select a supplied
+candidate or paste a complete candidate JSON object, then start the interview.
+The conversation panel sends each answer to the API and renders the final
+feedback when the interview ends.

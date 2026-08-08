@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import logging
 import os
+from pathlib import Path
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request, status
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
@@ -20,6 +23,8 @@ app = FastAPI(title="Probe Interview", version="0.1.0")
 limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+ROOT = Path(__file__).parent.parent
+app.mount("/data", StaticFiles(directory=ROOT / "data"), name="data")
 
 @app.post(
     "/api/interview",
@@ -79,3 +84,8 @@ def interview(request: Request, payload: InterviewRequest) -> InterviewResponse:
         done=result.get("done", False),
         feedback=Feedback.model_validate(feedback) if feedback else None,
     )
+
+
+@app.get("/", include_in_schema=False)
+def frontend() -> FileResponse:
+    return FileResponse(ROOT / "app" / "static" / "index.html")
