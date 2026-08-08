@@ -58,3 +58,19 @@ Open `http://127.0.0.1:8000/` after starting the server. Select a supplied
 candidate or paste a complete candidate JSON object, then start the interview.
 The conversation panel sends each answer to the API and renders the final
 feedback when the interview ends.
+
+## Dokploy deployment preparation
+
+The repository includes `Dockerfile` and `docker-compose.yml` for Dokploy. The
+compose service uses the external `dokploy-network` and routes
+`probe.midhunpm.in` to container port `8000` through Traefik with Let's Encrypt.
+
+In Dokploy, create a GitHub-backed Dockerfile application from this repository
+after merging the deployment PR. Set every variable from `.env.example` in the
+application's environment settings, including all provider API keys. Do not add
+keys to the repository or Docker build arguments. Configure the domain in
+Dokploy as `probe.midhunpm.in`, HTTPS enabled with the Let's Encrypt resolver,
+and port `8000`.
+
+Both the app and Traefik configuration send `X-Robots-Tag: noindex, nofollow,
+noarchive`; `/robots.txt` disallows all crawling.
