@@ -6,15 +6,16 @@ keyed by the caller's `sessionId`.
 
 ## Current status
 
-Phase 3 is implemented. Strengths Finder, Weaknesses Finder, and Topic Planner
+Phase 4 is implemented. Strengths Finder, Weaknesses Finder, and Topic Planner
 run once at session start through Groq, then the OpenAI Interviewer asks from
 the resulting role- and evidence-based topic queue. Groq Response Reviewer
 grades every answer and routes a harder follow-up, simpler rephrase, next topic,
-or final evaluation. The graph pauses after each question and resumes when the
-next candidate message is injected.
+or final evaluation. The Consistency Checker accumulates material conflicts
+between earlier claims and later answers for the final evaluator. The graph
+pauses after each question and resumes when the next candidate message is injected.
 
-Consistency checks, hardening, deployment, and a frontend are intentionally not
-implemented until their respective phases.
+Hardening, deployment, and a frontend are intentionally not implemented until
+their respective phases.
 
 ## Run locally
 

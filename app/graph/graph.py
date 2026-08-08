@@ -8,6 +8,7 @@ from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
 
 from app.agents.evaluator import generate_feedback
+from app.agents.consistency_checker import check_consistency
 from app.agents.interviewer import generate_question
 from app.agents.response_reviewer import review_answer
 from app.agents.strengths_finder import find_strengths
@@ -116,8 +117,33 @@ def response_reviewer_node(state: InterviewState) -> dict:
     return update
 
 
+def consistency_checker_node(state: InterviewState) -> dict:
+    transcript = state["transcript"]
+    answer = next(entry["content"] for entry in reversed(transcript) if entry["role"] == "candidate")
+    result = check_consistency(
+        get_setup_model_provider(),
+        earlier_transcript=transcript[:-1],
+        latest_answer=answer,
+    )
+    contradiction = {
+        "answer": answer,
+        "flags": result.flags,
+        "rationale": result.rationale,
+    }
+    update = {
+        "last_consistency": result.model_dump(),
+        "contradictions": [contradiction] if result.contradiction else [],
+    }
+    logger.info("agent=ConsistencyChecker input=%s output=%s", answer, update)
+    return update
+
+
 def evaluator_node(state: InterviewState) -> dict:
-    feedback = generate_feedback(get_strong_model_provider(), state.get("transcript", []))
+    feedback = generate_feedback(
+        get_strong_model_provider(),
+        state.get("transcript", []),
+        state.get("contradictions", []),
+    )
     update = {
         "reply": "Interview completed.",
         "done": True,
@@ -134,6 +160,7 @@ def build_graph():
     builder.add_node("topic_planner", topic_planner_node)
     builder.add_node("interviewer", interviewer_node)
     builder.add_node("response_reviewer", response_reviewer_node)
+    builder.add_node("consistency_checker", consistency_checker_node)
     builder.add_node("evaluator", evaluator_node)
     builder.add_edge(START, "strengths_finder")
     builder.add_edge("strengths_finder", "weaknesses_finder")
@@ -148,8 +175,9 @@ def build_graph():
             "evaluator": "evaluator",
         },
     )
+    builder.add_edge("response_reviewer", "consistency_checker")
     builder.add_conditional_edges(
-        "response_reviewer",
+        "consistency_checker",
         route_after_reviewer,
         {"interviewer": "interviewer", "evaluator": "evaluator"},
     )

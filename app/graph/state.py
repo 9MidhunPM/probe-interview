@@ -16,6 +16,8 @@ class InterviewState(TypedDict, total=False):
     candidate_message: str | None
     awaiting_review: bool
     last_review: dict[str, str]
+    contradictions: Annotated[list[dict], add]
+    last_consistency: dict
     turn_count: int
     reply: str
     ready_for_evaluation: bool

@@ -36,6 +36,7 @@ def interview(request: InterviewRequest) -> InterviewResponse:
                 "candidate_message": None,
                 "current_topic_index": 0,
                 "awaiting_review": False,
+                "contradictions": [],
                 "turn_count": 0,
                 "ready_for_evaluation": False,
                 "done": False,
