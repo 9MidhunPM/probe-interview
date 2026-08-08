@@ -5,6 +5,7 @@ import json
 from pydantic import BaseModel
 
 from app.providers.base import ModelProvider
+from app.schemas import strict_json_schema
 
 
 class WeaknessesResult(BaseModel):
@@ -23,7 +24,7 @@ def find_weaknesses(provider: ModelProvider, candidate: dict) -> list[str]:
     output = provider.generate_json(
         instructions=INSTRUCTIONS,
         input_text=f"Candidate data:\n{json.dumps(candidate)}",
-        schema=WeaknessesResult.model_json_schema(),
+        schema=strict_json_schema(WeaknessesResult),
         max_tokens=300,
     )
     return WeaknessesResult.model_validate_json(output).weaknesses

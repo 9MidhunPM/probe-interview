@@ -10,6 +10,13 @@ from app.main import provider_unavailable
 from app.providers import base
 from app.providers.errors import ProviderUnavailableError
 from app.providers.openai_client import OpenAIProvider
+from app.schemas import strict_json_schema
+from app.agents.consistency_checker import ConsistencyResult
+from app.agents.evaluator import EvaluationResult
+from app.agents.response_reviewer import ReviewResult
+from app.agents.strengths_finder import StrengthsResult
+from app.agents.topic_planner import TopicPlan
+from app.agents.weaknesses_finder import WeaknessesResult
 
 
 class RetryableTestError(Exception):
@@ -104,6 +111,31 @@ class ProviderUnavailableHandlerTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 503)
         self.assertEqual(response.headers["retry-after"], "5")
+
+
+class StrictJsonSchemaTests(unittest.TestCase):
+    def test_forbids_extra_properties_for_every_structured_agent(self) -> None:
+        for model in (
+            StrengthsResult,
+            WeaknessesResult,
+            TopicPlan,
+            ReviewResult,
+            ConsistencyResult,
+            EvaluationResult,
+        ):
+            for object_schema in _object_schemas(strict_json_schema(model)):
+                self.assertFalse(object_schema["additionalProperties"])
+
+
+def _object_schemas(value):
+    if isinstance(value, dict):
+        if value.get("type") == "object" or "properties" in value:
+            yield value
+        for nested in value.values():
+            yield from _object_schemas(nested)
+    elif isinstance(value, list):
+        for nested in value:
+            yield from _object_schemas(nested)
 
 
 if __name__ == "__main__":

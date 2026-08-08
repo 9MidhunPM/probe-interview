@@ -5,6 +5,7 @@ import json
 from pydantic import BaseModel, ConfigDict, ValidationError
 
 from app.providers.base import ModelProvider
+from app.schemas import strict_json_schema
 
 
 class ConsistencyResult(BaseModel):
@@ -35,7 +36,7 @@ def check_consistency(
         output = provider.generate_json(
             instructions=INSTRUCTIONS,
             input_text=f"Check this interview turn:\n{json.dumps(input_data)}",
-            schema=ConsistencyResult.model_json_schema(),
+            schema=strict_json_schema(ConsistencyResult),
             max_tokens=180,
         )
         return ConsistencyResult.model_validate_json(output)
