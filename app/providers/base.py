@@ -5,10 +5,10 @@ from typing import Protocol
 
 
 class ModelProvider(Protocol):
-    def generate(self, *, instructions: str, input_text: str) -> str: ...
+    def generate(self, *, instructions: str, input_text: str, max_tokens: int) -> str: ...
 
     def generate_json(
-        self, *, instructions: str, input_text: str, schema: dict
+        self, *, instructions: str, input_text: str, schema: dict, max_tokens: int
     ) -> str: ...
 
 

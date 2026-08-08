@@ -14,8 +14,9 @@ or final evaluation. The Consistency Checker accumulates material conflicts
 between earlier claims and later answers for the final evaluator. The graph
 pauses after each question and resumes when the next candidate message is injected.
 
-Hardening, deployment, and a frontend are intentionally not implemented until
-their respective phases.
+Phase 5 hardening is active: per-IP request and new-session limits, message
+length validation, agent output-token caps, and prompt-injection boundaries.
+The frontend and deployment remain in later phases.
 
 ## Run locally
 

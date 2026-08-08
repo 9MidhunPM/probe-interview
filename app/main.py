@@ -1,37 +1,46 @@
 from __future__ import annotations
 
 import logging
+import os
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, Request, status
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 
 from app.graph.graph import interview_graph
+from app.limiting import new_session_limiter
 from app.models import Feedback, InterviewRequest, InterviewResponse
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
 app = FastAPI(title="Probe Interview", version="0.1.0")
-
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 @app.post(
     "/api/interview",
     response_model=InterviewResponse,
     response_model_exclude_none=True,
 )
-def interview(request: InterviewRequest) -> InterviewResponse:
-    config = {"configurable": {"thread_id": request.sessionId}}
+@limiter.limit(lambda: f"{os.getenv('RATE_LIMIT_REQUESTS_PER_MINUTE', '60')}/minute")
+def interview(request: Request, payload: InterviewRequest) -> InterviewResponse:
+    config = {"configurable": {"thread_id": payload.sessionId}}
     snapshot = interview_graph.get_state(config)
 
-    if request.candidate is not None:
+    if payload.candidate is not None:
         if snapshot.values:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="An interview already exists for this sessionId.",
             )
+        new_session_limiter.check(get_remote_address(request))
         result = interview_graph.invoke(
             {
-                "candidate": request.candidate.model_dump(),
+                "candidate": payload.candidate.model_dump(),
                 "transcript": [],
                 "candidate_message": None,
                 "current_topic_index": 0,
@@ -56,7 +65,7 @@ def interview(request: InterviewRequest) -> InterviewResponse:
             )
         resume_config = interview_graph.update_state(
             config,
-            {"candidate_message": request.message},
+            {"candidate_message": payload.message},
             as_node="interviewer",
         )
         result = interview_graph.invoke(None, resume_config)
