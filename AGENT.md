@@ -12,8 +12,9 @@ candidate's real curriculum/mission data, ending in structured feedback.
 
 ## Ground rules
 
-- The API contract in `PRD.md` §5 is fixed — field names, casing, response
-  shapes must match exactly.
+- The API contract in `PRD.md` §5 is fixed — preserve `reply`, `done`, and
+  `feedback` exactly. Additive fields such as `trace` must never alter those
+  graded fields or expose internal prompts.
 - **No throwaway/hardcoded scaffolding.** Every phase should produce real,
   working logic that survives into the final build — if something can't
   be done for real yet, build the smallest real version of it rather than
@@ -69,7 +70,9 @@ Dockerfile, Dokploy config, README deploy instructions, unguessable
 subdomain routed through existing Traefik/Cloudflare setup.
 
 ### Phase 7 — Frontend (optional)
-Minimal chat UI consuming the endpoint. Build last, once backend is solid.
+Minimal chat UI consuming the endpoint. Build last, once backend is solid. The
+UI may surface the API's additive execution `trace` in a collapsed reasoning
+panel that shows agent names and safe structured outputs, never system prompts.
 
 ### Phase 8 — Demo testing
 Run all 20 sample candidates end-to-end. Deliberately try to break it —

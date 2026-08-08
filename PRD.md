@@ -86,6 +86,24 @@ No authentication. State is scoped to `sessionId` (maps to a LangGraph
 }
 ```
 
+**Execution trace (additive extension)**
+
+Every response may also include `trace`, an array containing only the agents
+that fired for that HTTP turn. Each entry has an `agent` display name and an
+`output` object containing that agent's structured result. Trace never includes
+system prompts or provider instructions. Existing `reply`, `done`, and
+`feedback` fields remain unchanged.
+
+```json
+{
+  "trace": [
+    { "agent": "Response Reviewer", "output": { "signal": "probe", "probe_target": "relevance threshold" } },
+    { "agent": "Consistency Checker", "output": { "contradiction": false, "flags": [] } },
+    { "agent": "Interviewer", "output": { "reply": "How would you choose that threshold?" } }
+  ]
+}
+```
+
 ## 6. Inputs
 
 - `curriculum.json` — 31 days, 8 modules, each day has title/type/tools/objectives.
@@ -150,7 +168,9 @@ Per-agent model assignment via env-driven provider abstraction:
 - **Reliability**: no 500s on malformed input; graceful validation errors.
 - **Observability**: worth logging which agent fired, its output, and the
   routing decision per turn — both for debugging the graph and because it's a
-  great demo artifact (showing judges the graph's reasoning trail).
+  great demo artifact (showing judges the graph's reasoning trail). The API
+  exposes this safe structured output as an additive `trace` field, and the UI
+  provides a collapsed reasoning panel for it.
 
 ## 9. Success Criteria
 
