@@ -50,10 +50,10 @@ button:disabled { cursor: wait; opacity: .55; }
 .app-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 0; padding: 0 clamp(16px, 2vw, 28px); color: #d9ebe4; font-size: .76rem; letter-spacing: .08em; text-transform: uppercase; background: #1f4b51; border-bottom: 1px solid #477b77; }
 .app-header strong { color: #fffdf4; }
 .app-shell { display: grid; grid-template-columns: minmax(0, 1fr) minmax(290px, 22vw); min-height: 0; }
-.scene-pane { min-width: 0; min-height: 0; display: grid; grid-template-rows: minmax(84px, auto) minmax(0, 1fr) minmax(160px, 26vh); overflow: hidden; background: #d7e7df; }
+.scene-pane { min-width: 0; min-height: 0; display: grid; grid-template-rows: minmax(84px, 18vh) minmax(180px, 1fr) max-content; overflow: hidden; background: #d7e7df; }
 .turn-panel { position: relative; z-index: 1; min-height: 0; overflow: auto; display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 14px; align-items: start; padding: 16px clamp(18px, 3vw, 34px); background: #fdfbf2; border-color: var(--line); transition: opacity 220ms ease, background 220ms ease; }
 .interviewer-panel { border-bottom: 1px solid var(--line); }
-.candidate-panel { display: grid; grid-template-columns: 1fr; gap: 10px; overflow: hidden; border-top: 1px solid var(--line); }
+.candidate-panel { display: grid; grid-template-columns: 1fr; align-content: start; gap: 10px; overflow: hidden; border-top: 1px solid var(--line); }
 .turn-panel.is-focused { background: #fffdf4; opacity: 1; }
 .turn-panel.is-receded { background: #f1f5ef; opacity: .72; }
 .turn-label { padding-top: 5px; color: var(--mint-dark); font-size: .72rem; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
