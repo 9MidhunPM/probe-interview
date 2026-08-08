@@ -7,7 +7,7 @@ import os
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
 
-from app.agents.evaluator import generate_feedback
+from app.agents.evaluator import generate_evaluation
 from app.agents.consistency_checker import check_consistency
 from app.agents.interviewer import generate_question
 from app.agents.response_reviewer import review_answer
@@ -69,7 +69,9 @@ def interviewer_node(state: InterviewState) -> dict:
         get_strong_model_provider(),
         full_transcript,
         topic,
-        last_review.get("signal"),
+        last_review,
+        state["candidate"]["member"]["name"],
+        state.get("low_effort_count", 0),
     )
     update = {
         "transcript": transcript + [{"role": "interviewer", "content": question}],
@@ -99,9 +101,21 @@ def response_reviewer_node(state: InterviewState) -> dict:
         question=question,
         answer=answer,
         topic=state["topic_queue"][topic_index],
+        low_effort_count=(
+            state.get("low_effort_count", 0)
+            if state.get("low_effort_topic_index") == topic_index
+            else 0
+        ),
+    )
+    low_effort_count = (
+        state.get("low_effort_count", 0) + 1
+        if review.engagement in {"low", "disengaged"}
+        and state.get("low_effort_topic_index") == topic_index
+        else 1 if review.engagement in {"low", "disengaged"} else 0
     )
     if review.signal == "advance":
         topic_index += 1
+        low_effort_count = 0
     ready_for_evaluation = (
         review.signal == "end"
         or state["turn_count"] >= _max_turns()
@@ -110,6 +124,8 @@ def response_reviewer_node(state: InterviewState) -> dict:
     update = {
         "current_topic_index": topic_index,
         "last_review": review.model_dump(),
+        "low_effort_count": low_effort_count,
+        "low_effort_topic_index": topic_index if low_effort_count else None,
         "awaiting_review": False,
         "ready_for_evaluation": ready_for_evaluation,
     }
@@ -139,15 +155,15 @@ def consistency_checker_node(state: InterviewState) -> dict:
 
 
 def evaluator_node(state: InterviewState) -> dict:
-    feedback = generate_feedback(
+    evaluation = generate_evaluation(
         get_strong_model_provider(),
         state.get("transcript", []),
         state.get("contradictions", []),
     )
     update = {
-        "reply": "Interview completed.",
+        "reply": evaluation.closing,
         "done": True,
-        "feedback": feedback.model_dump(),
+        "feedback": evaluation.feedback.model_dump(),
     }
     logger.info("agent=Evaluator input=%s output=%s", state.get("transcript", []), update)
     return update
