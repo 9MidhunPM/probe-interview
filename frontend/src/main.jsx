@@ -26,7 +26,6 @@ function Login({ onAuthenticated }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [sending, setSending] = useState(false);
-
   const submit = async (event) => {
     event.preventDefault();
     setSending(true);
@@ -40,7 +39,6 @@ function Login({ onAuthenticated }) {
       setSending(false);
     }
   };
-
   return <main className="gate"><section className="gate-card"><p className="kicker">Private practice room</p><h1>Probe Interview</h1><p>Enter the access password to begin a guided technical conversation.</p><form onSubmit={submit}><label htmlFor="password">Access password</label><input id="password" type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} required autoFocus /><button disabled={sending}>{sending ? 'Checking access...' : 'Enter the room'}</button><p className="error" role="alert">{error}</p></form></section></main>;
 }
 
@@ -49,14 +47,11 @@ function CandidateSetup({ onStart }) {
   const [raw, setRaw] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-
   useEffect(() => { request('/data/candidates.json').then((data) => setCandidates(data.candidates || [])).catch((err) => setError(err.message)); }, []);
-
   const choose = (id) => {
     const candidate = candidates.find((entry) => entry.member.id === id);
     if (candidate) setRaw(JSON.stringify(candidate, null, 2));
   };
-
   const start = async () => {
     try {
       const candidate = JSON.parse(raw);
@@ -67,18 +62,16 @@ function CandidateSetup({ onStart }) {
       setLoading(false);
     }
   };
-
   return <main className="setup-shell"><section className="setup-copy"><p className="kicker">A scene, not a script</p><h1>Set the room.</h1><p>Load a candidate history, then let the conversation reveal where their reasoning holds up.</p><a href="/classic">Open classic interface</a></section><section className="setup-card"><label>Load a sample<select defaultValue="" onChange={(event) => choose(event.target.value)}><option value="">Choose a candidate</option>{candidates.map((candidate) => <option key={candidate.member.id} value={candidate.member.id}>{candidate.member.name} · {candidate.member.jobRole}</option>)}</select></label><label>Candidate JSON<textarea value={raw} onChange={(event) => setRaw(event.target.value)} placeholder="Paste a complete candidate object" spellCheck="false" /></label><button onClick={start} disabled={loading}>{loading ? 'Preparing interview...' : 'Enter interview room'}</button><p className="error">{error}</p></section></main>;
 }
 
 function TranscriptPanel({ transcript }) {
-  return <section className="transcript-panel" aria-label="Interview transcript"><header><h3>Transcript</h3><span>{transcript.length} turns</span></header><div className="transcript-log">{transcript.map((turn, index) => <p key={`${turn.speaker}-${index}`}><strong>{turn.speaker}</strong>{turn.message}</p>)}</div></section>;
+  return <section className="transcript-panel" aria-label="Interview transcript"><header><h3>Transcript</h3><span>{transcript.length} turns</span></header><div className="transcript-log">{transcript.map((turn, index) => <div className={`transcript-message ${turn.speaker === 'Interviewer' ? 'from-interviewer' : 'from-candidate'}`} key={`${turn.speaker}-${index}`}><strong>{turn.speaker}</strong><p>{turn.message}</p></div>)}</div></section>;
 }
 
 function TraceSidebar({ trace, activeAgents, generationStatus, transcript }) {
   const [expanded, setExpanded] = useState(null);
   const entries = Object.fromEntries((trace || []).map((entry) => [entry.agent, entry]));
-
   return <aside className="orchestration"><header><p className="kicker">Live graph</p><h2>Reasoning trail</h2><span>{trace?.length || 0} agents this turn</span></header><div className="agent-rail">{agents.map((agent) => {
     const entry = entries[agent];
     const isGenerator = agent === 'Answer Generator';
@@ -106,6 +99,7 @@ function InterviewStage({ candidate, response, phase, pending, busy, activeAgent
   useEffect(() => {
     setTypedReply('');
     setIsTyping(true);
+    setFocusedSpeaker(null);
     let cursor = 0;
     const timer = window.setInterval(() => {
       cursor += 3;
@@ -157,17 +151,22 @@ function InterviewStage({ candidate, response, phase, pending, busy, activeAgent
     setCandidateTyping(false);
     onNext();
   };
+  const toggleFocus = (speaker) => setFocusedSpeaker((current) => current === speaker ? null : speaker);
+  const handleBubbleKeyDown = (event, speaker) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      toggleFocus(speaker);
+    }
+  };
 
   const candidateImage = candidateTyping ? 'candidate-speaking.png' : busy && phase === 'candidate' ? 'candidate-thinking.png' : pose === 'confident' ? 'candidate-confident.png' : pose === 'unsure' ? 'candidate-nervous.png' : pose === 'vague' ? 'candidate-vague.png' : 'candidate-idle.png';
   const interviewerImage = isTyping ? 'interviewer-speaking.png' : 'interviewer-idle.png';
   const canRespond = phase === 'candidate' && !isTyping && !response.done;
   const interviewerActive = phase === 'interviewer' || phase === 'interviewer-ready';
-  const interviewerFocused = focusedSpeaker ? focusedSpeaker === 'interviewer' : interviewerActive;
-  const candidateFocused = focusedSpeaker ? focusedSpeaker === 'candidate' : !interviewerActive;
-
+  const cameraFocus = focusedSpeaker || (interviewerActive ? 'interviewer' : 'candidate');
   const candidateCopy = candidateSpeech || (canRespond ? 'Choose a response style or write your own answer.' : 'Waiting for your turn...');
 
-  return <main className="scene-app"><header className="app-header"><a href="/classic">Classic</a><span>Probe / live practice</span><strong>{candidate.member.name}</strong></header><div className="app-shell"><section className="scene-pane"><section className={`interview-scene ${interviewerActive ? 'interviewer-turn' : 'candidate-turn'}`}><img className="scene-backdrop" src={asset('interview-room.png')} alt="" /><div className="scene-wash" /><section className={`speaker interviewer-speaker ${interviewerActive ? 'is-active' : 'is-idle'}`}><button type="button" className={`speech-bubble interviewer-bubble ${interviewerFocused ? 'is-focused' : 'is-receded'}`} onClick={() => setFocusedSpeaker((current) => current === 'interviewer' ? null : 'interviewer')}><span>Interviewer</span><MarkdownContent>{typedReply || '...'}</MarkdownContent></button><img className="scene-character interviewer-character" src={asset(interviewerImage)} alt="Interviewer" /></section><section className={`speaker candidate-speaker ${interviewerActive ? 'is-idle' : 'is-active'}`}><button type="button" className={`speech-bubble candidate-bubble ${candidateFocused ? 'is-focused' : 'is-receded'}`} onClick={() => setFocusedSpeaker((current) => current === 'candidate' ? null : 'candidate')}><span>{candidate.member.name}</span><MarkdownContent>{candidateCopy}</MarkdownContent></button><img className="scene-character candidate-character" src={asset(candidateImage)} alt="Candidate" /></section></section>{phase === 'interviewer-ready' && <section className="interviewer-dock"><p>Interviewer turn complete</p><span>Read the question, then move to the candidate response.</span><button onClick={onAdvanceToCandidate}>Next: prepare your answer</button></section>}{canRespond && <section className="response-dock"><div className="dock-heading"><p>Candidate response</p><span>Generate a starting point, then make it your own.</span></div><div className="style-grid">{responseStyles.map(([style, label, description]) => <div className="style-action" key={style}><button className={pose === style ? 'selected' : ''} onClick={() => generate(style)} disabled={busy}>{label}</button><small>{description}</small></div>)}</div><label><span>Custom response</span><small className="field-description">Write your own response or edit a generated one before sending.</small><textarea value={draft} onChange={(event) => { setDraft(event.target.value); setCandidateSpeech(event.target.value); setPose('idle'); }} placeholder="Write or edit the generated answer" disabled={busy} /></label>{draft && <section className="markdown-preview"><span>Rendered preview</span><MarkdownContent>{draft}</MarkdownContent></section>}<button className="send-answer" disabled={busy || !draft.trim()} onClick={send}>Send answer</button></section>}{phase === 'candidate-complete' && <section className="next-dock"><p>Answer sent. Review the candidate response before continuing.</p><button onClick={advanceToInterviewer} disabled={!pending}>Next: hear the interviewer</button></section>}</section><TraceSidebar trace={pending?.trace || response.trace} activeAgents={activeAgents} generationStatus={generationStatus} transcript={transcript} /></div>{feedbackOpen && response.feedback && <FeedbackModal feedback={response.feedback} onClose={() => setFeedbackOpen(false)} />}</main>;
+  return <main className="scene-app"><header className="app-header"><a href="/classic">Classic</a><span>Probe / live practice</span><strong>{candidate.member.name}</strong></header><div className="app-shell"><section className="scene-pane"><section className={`turn-panel interviewer-panel ${cameraFocus === 'interviewer' ? 'is-focused' : 'is-receded'}`}><p className="turn-label">Interviewer</p><div className="turn-speech" role="button" tabIndex="0" aria-pressed={cameraFocus === 'interviewer'} onClick={() => toggleFocus('interviewer')} onKeyDown={(event) => handleBubbleKeyDown(event, 'interviewer')}><MarkdownContent>{typedReply || '...'}</MarkdownContent></div></section><section className="scene-frame" aria-label="Interview room"><div className={`scene-camera camera-${cameraFocus}`}><img className="scene-backdrop" src={asset('interview-room.png')} alt="" /><div className={`speaker interviewer-speaker ${interviewerActive ? 'is-active' : 'is-idle'}`}><img className="scene-character interviewer-character" src={asset(interviewerImage)} alt="Interviewer" /></div><div className={`speaker candidate-speaker ${interviewerActive ? 'is-idle' : 'is-active'}`}><img className="scene-character candidate-character" src={asset(candidateImage)} alt="Candidate" /></div></div></section><section className={`turn-panel candidate-panel ${cameraFocus === 'candidate' ? 'is-focused' : 'is-receded'}`}><p className="turn-label">{candidate.member.name}</p><div className="turn-speech" role="button" tabIndex="0" aria-pressed={cameraFocus === 'candidate'} onClick={() => toggleFocus('candidate')} onKeyDown={(event) => handleBubbleKeyDown(event, 'candidate')}><MarkdownContent>{candidateCopy}</MarkdownContent></div>{phase === 'interviewer-ready' && <section className="interviewer-dock"><span>Read the question, then move to the candidate response.</span><button onClick={onAdvanceToCandidate}>Next: prepare your answer</button></section>}{canRespond && <section className="response-dock"><div className="dock-heading"><p>Candidate response</p><span>Generate a starting point, then make it your own.</span></div><div className="style-grid">{responseStyles.map(([style, label, description]) => <div className="style-action" key={style}><button className={pose === style ? 'selected' : ''} onClick={() => generate(style)} disabled={busy}>{label}</button><small>{description}</small></div>)}</div><label><span>Custom response</span><small className="field-description">Write your own response or edit a generated one before sending.</small><textarea value={draft} onChange={(event) => { setDraft(event.target.value); setCandidateSpeech(event.target.value); setPose('idle'); }} placeholder="Write or edit the generated answer" disabled={busy} /></label><button className="send-answer" disabled={busy || !draft.trim()} onClick={send}>Send answer</button></section>}{phase === 'candidate-complete' && <section className="next-dock"><p>Answer sent. Review the candidate response before continuing.</p><button onClick={advanceToInterviewer} disabled={!pending}>Next: hear the interviewer</button></section>}</section></section><TraceSidebar trace={pending?.trace || response.trace} activeAgents={activeAgents} generationStatus={generationStatus} transcript={transcript} /></div>{feedbackOpen && response.feedback && <FeedbackModal feedback={response.feedback} onClose={() => setFeedbackOpen(false)} />}</main>;
 }
 
 function App() {
@@ -182,7 +181,6 @@ function App() {
   const [generationStatus, setGenerationStatus] = useState('idle');
   const [transcript, setTranscript] = useState([]);
   const [error, setError] = useState('');
-
   useEffect(() => { request('/api/session').then(() => setAuth('yes')).catch(() => setAuth('no')); }, []);
 
   const start = async (selected) => {
@@ -204,7 +202,6 @@ function App() {
       setActiveAgents([]);
     }
   };
-
   const generate = async (style) => {
     setBusy(true);
     setGenerationStatus('active');
@@ -221,7 +218,6 @@ function App() {
       setBusy(false);
     }
   };
-
   const send = async (answer) => {
     setBusy(true);
     setGenerationStatus('idle');
@@ -240,7 +236,6 @@ function App() {
       setActiveAgents([]);
     }
   };
-
   const next = () => {
     if (!pending) return;
     setTranscript((current) => [...current, { speaker: 'Interviewer', message: pending.reply }]);
@@ -248,7 +243,6 @@ function App() {
     setPending(null);
     setPhase('interviewer');
   };
-
   if (auth === 'checking') return <main className="loading">Opening interview room...</main>;
   if (auth === 'no') return <Login onAuthenticated={() => setAuth('yes')} />;
   if (!response) return <CandidateSetup onStart={start} />;
