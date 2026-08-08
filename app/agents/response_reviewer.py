@@ -6,6 +6,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, ValidationError
 
 from app.providers.base import ModelProvider
+from app.schemas import strict_json_schema
 
 
 class ReviewResult(BaseModel):
@@ -56,7 +57,7 @@ def review_answer(
         output = provider.generate_json(
             instructions=INSTRUCTIONS,
             input_text=f"Review this interview turn:\n{json.dumps(input_data)}",
-            schema=ReviewResult.model_json_schema(),
+            schema=strict_json_schema(ReviewResult),
             max_tokens=180,
         )
         return ReviewResult.model_validate_json(output)

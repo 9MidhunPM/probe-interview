@@ -5,6 +5,7 @@ import json
 from pydantic import BaseModel, Field
 
 from app.providers.base import ModelProvider
+from app.schemas import strict_json_schema
 
 
 class PlannedTopic(BaseModel):
@@ -42,7 +43,7 @@ def plan_topics(
     output = provider.generate_json(
         instructions=INSTRUCTIONS,
         input_text=f"Interview inputs:\n{json.dumps(input_data)}",
-        schema=TopicPlan.model_json_schema(),
+        schema=strict_json_schema(TopicPlan),
         max_tokens=400,
     )
     return [topic.model_dump() for topic in TopicPlan.model_validate_json(output).topic_queue]

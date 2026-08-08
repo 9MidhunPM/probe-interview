@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict
 
 from app.models import Feedback
 from app.providers.base import StrongModelProvider
+from app.schemas import strict_json_schema
 
 EVALUATOR_INSTRUCTIONS = """You are the evaluator for a completed technical interview.
 Evaluate only the supplied transcript. Return JSON only, with exactly these
@@ -39,7 +40,7 @@ def generate_evaluation(
             f"Consistency flags:\n{json.dumps(contradictions)}\n\n"
             "Use a material consistency flag in gaps when relevant; do not invent one."
         ),
-        schema=EvaluationResult.model_json_schema(),
+        schema=strict_json_schema(EvaluationResult),
         max_tokens=750,
     )
     return EvaluationResult.model_validate_json(_json_object(output))
