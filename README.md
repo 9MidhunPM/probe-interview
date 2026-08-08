@@ -6,13 +6,12 @@ keyed by the caller's `sessionId`.
 
 ## Current status
 
-Phase 7 is implemented. Strengths Finder, Weaknesses Finder, and Topic Planner
-run once at session start through Groq, then the OpenAI Interviewer asks from
-the resulting role- and evidence-based topic queue. Groq Response Reviewer
-grades every answer and routes a harder follow-up, simpler rephrase, next topic,
-or final evaluation. The Consistency Checker accumulates material conflicts
-between earlier claims and later answers for the final evaluator. The graph
-pauses after each question and resumes when the next candidate message is injected.
+Phase 7 is implemented. OpenAI models run each stage: `gpt-4o-mini` extracts
+strengths and weaknesses, `gpt-4.1-mini` plans topics and reviews answers, and
+`gpt-5.6-luna` conducts and evaluates the interview. The Consistency Checker
+accumulates material conflicts between earlier claims and later answers for the
+final evaluator. The graph pauses after each question and resumes when the next
+candidate message is injected.
 
 Phase 5 hardening is active: per-IP request and new-session limits, message
 length validation, agent output-token caps, and prompt-injection boundaries.
@@ -22,7 +21,7 @@ scope until Phase 6 is explicitly approved.
 ## Run locally
 
 1. Install dependencies with `python3 -m pip install --break-system-packages -r requirements.txt`.
-3. Copy `.env.example` to `.env`, then set the OpenAI, Groq, and Gemini keys.
+3. Copy `.env.example` to `.env`, then set `OPENAI_API_KEY`.
 4. Start the server with `python3 -m uvicorn app.main:app --reload`.
 
 Set `MAX_TURNS=2` while exercising the short examples below. The default is 14
@@ -67,6 +66,15 @@ Each IP receives five failed attempts before a ten-minute cooldown. Set
 `ACCESS_COOKIE_SECURE=true` in Dokploy so the access cookie is HTTPS-only, and
 configure the same access variables in Dokploy's application environment after
 merging the feature PR.
+
+## Model Routing
+
+Default traffic uses OpenAI only. `ORCHESTRATOR_PROVIDER`,
+`REASONING_PROVIDER`, and `EXTRACTION_PROVIDER` select a provider per role and
+default to `openai`. Set a role to `groq` or `gemini` only for manual fallback;
+their keys and model variables remain optional. OpenAI retries transient rate
+limits, connection failures, and server failures twice with exponential backoff,
+then returns `503 Service Unavailable` with a `Retry-After` header.
 
 ## Dokploy deployment preparation
 
