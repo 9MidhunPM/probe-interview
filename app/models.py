@@ -74,3 +74,9 @@ class InterviewResponse(BaseModel):
     reply: str
     done: bool
     feedback: Feedback | None = None
+
+
+class LoginRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    password: str = Field(min_length=1)
