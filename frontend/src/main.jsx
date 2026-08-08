@@ -88,7 +88,7 @@ function TraceSidebar({ trace, history, activeAgents, generationStatus, generati
     const active = activeAgents.includes(agent) || (isGenerator && generationStatus === 'active');
     const complete = Boolean(currentEntry) || (isGenerator && generationStatus === 'complete');
     const state = active ? 'working' : complete ? 'complete' : entry ? 'available' : 'idle';
-    return <section className={`agent-row ${entry ? 'complete' : ''} ${active ? 'active' : ''}`} key={agent}><button type="button" onClick={() => entry && setSelectedEntry(entry)} disabled={!entry}><span className="agent-dot" /><strong>{agent}</strong><small>{state}</small></button></section>;
+    return <section className={`agent-row ${state}`} key={agent}><button type="button" onClick={() => entry && setSelectedEntry(entry)} disabled={!entry}><span className="agent-dot" /><strong>{agent}</strong><small>{state}</small></button></section>;
   })}</div><TranscriptPanel transcript={transcript} />{selectedEntry && <TraceModal entry={selectedEntry} onClose={() => setSelectedEntry(null)} />}</aside>;
 }
 
@@ -169,6 +169,8 @@ function InterviewStage({ candidate, response, phase, pending, busy, activeAgent
   };
   const advanceToInterviewer = () => {
     setPose('idle');
+    setDraft('');
+    setCandidateSpeech('');
     setCandidateText('');
     setCandidateTyping(false);
     onNext();

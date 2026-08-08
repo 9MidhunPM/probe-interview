@@ -8,3 +8,17 @@ __pycache__/
 coverage.xml
 htmlcov/
 frontend/node_modules/
+
+# Local browser verification output and MCP state (includes snapshot YAML and console logs).
+/.playwright-mcp/
+
+# Named Playwright capture artifacts written at the repository root.
+/before-*.png
+/after-*.png
+/skeleton-*.png
+/generated-answer-*.png
+/mid-conversation-*.png
+/feedback-popup-*.png
+
+# Ad-hoc local server logs written at the repository root.
+/*.log

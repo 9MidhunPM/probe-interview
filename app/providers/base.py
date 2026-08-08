@@ -33,7 +33,8 @@ def _get_provider(provider: str, model: str | None = None) -> ModelProvider:
 
 def _get_role_provider(role: str, model_env: str) -> ModelProvider:
     provider = os.getenv(f"{role}_PROVIDER", "openai").lower()
-    return _get_provider(provider, os.getenv(model_env))
+    model = os.getenv(model_env) if provider == "openai" else None
+    return _get_provider(provider, model)
 
 
 def get_extraction_model_provider() -> ModelProvider:
