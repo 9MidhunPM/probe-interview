@@ -14,13 +14,24 @@ from app.schemas import strict_json_schema
 from app.agents.consistency_checker import ConsistencyResult
 from app.agents.evaluator import EvaluationResult
 from app.agents.response_reviewer import ReviewResult
+from app.agents.response_reviewer import review_answer
+from app.agents.interviewer import _probe_question
 from app.agents.strengths_finder import StrengthsResult
 from app.agents.topic_planner import TopicPlan
 from app.agents.weaknesses_finder import WeaknessesResult
+from app.graph.graph import response_reviewer_node
 
 
 class RetryableTestError(Exception):
     pass
+
+
+class StaticJsonProvider:
+    def __init__(self, output: str) -> None:
+        self.output = output
+
+    def generate_json(self, **_) -> str:
+        return self.output
 
 
 class OpenAIProviderTests(unittest.TestCase):
@@ -125,6 +136,65 @@ class StrictJsonSchemaTests(unittest.TestCase):
         ):
             for object_schema in _object_schemas(strict_json_schema(model)):
                 self.assertFalse(object_schema["additionalProperties"])
+
+
+class ProbeRoutingTests(unittest.TestCase):
+    def test_keeps_only_the_question_for_a_probe_reply(self) -> None:
+        reply = "If it were me, I would start with labeled examples. What would determine that threshold?"
+
+        self.assertEqual(_probe_question(reply), "What would determine that threshold?")
+
+    def test_allows_one_probe_then_normalizes_a_second_probe(self) -> None:
+        provider = StaticJsonProvider(
+            '{"depth":"adequate","correctness":"partially_correct","vagueness":"medium",'
+            '"engagement":"engaged","signal":"probe","probe_target":"relevance threshold",'
+            '"rationale":"The threshold is undefined."}'
+        )
+        arguments = {
+            "question": "How would you rank results?",
+            "answer": "I would use a relevance threshold.",
+            "topic": {"topic": "Ranking", "rationale": "Interview focus"},
+            "low_effort_count": 0,
+        }
+
+        first = review_answer(provider, probe_available=True, **arguments)
+        second = review_answer(provider, probe_available=False, **arguments)
+
+        self.assertEqual(first.signal, "probe")
+        self.assertEqual(first.probe_target, "relevance threshold")
+        self.assertEqual(second.signal, "simplify")
+        self.assertIsNone(second.probe_target)
+
+    def test_records_the_topic_that_received_a_probe(self) -> None:
+        review = ReviewResult(
+            depth="adequate",
+            correctness="partially_correct",
+            vagueness="medium",
+            engagement="engaged",
+            signal="probe",
+            probe_target="relevance threshold",
+            rationale="The threshold is undefined.",
+        )
+        state = {
+            "transcript": [
+                {"role": "interviewer", "content": "How would you rank results?"},
+                {"role": "candidate", "content": "I would use a relevance threshold."},
+            ],
+            "topic_queue": [{"topic": "Ranking", "rationale": "Interview focus"}],
+            "current_topic_index": 0,
+            "low_effort_count": 0,
+            "low_effort_topic_index": None,
+            "probed_topic_index": None,
+            "turn_count": 1,
+        }
+
+        with patch("app.graph.graph.get_reasoning_model_provider"), patch(
+            "app.graph.graph.review_answer", return_value=review
+        ):
+            update = response_reviewer_node(state)
+
+        self.assertEqual(update["probed_topic_index"], 0)
+        self.assertEqual(update["review_history"][0]["review"]["probe_target"], "relevance threshold")
 
 
 def _object_schemas(value):
