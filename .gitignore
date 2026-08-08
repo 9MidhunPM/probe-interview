@@ -28,6 +28,8 @@ frontend/node_modules/
 /candidate-editor-*.png
 /classic-home-*.png
 /classic-full-interview-*.png
+/onboarding-expanded-*.png
+/candidate-setup-scroll-*.png
 
 # Ad-hoc local server logs written at the repository root.
 /*.log
