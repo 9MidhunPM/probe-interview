@@ -252,7 +252,7 @@ function App() {
   if (auth === 'checking') return <main className="loading">Opening interview room...</main>;
   if (auth === 'no') return <Login onAuthenticated={() => setAuth('yes')} />;
   if (!response) return <CandidateSetup onStart={start} />;
-  return <><InterviewStage candidate={candidate} response={response} pending={pending} phase={phase} busy={busy} activeAgents={activeAgents} generationStatus={generationStatus} transcript={transcript} onGenerate={generate} onSend={send} onNext={next} onInterviewerReady={() => setPhase((current) => current === 'interviewer' ? 'interviewer-ready' : current)} onAdvanceToCandidate={() => setPhase('candidate')} />{error && <p className="toast" role="alert">{error}</p>}</>;
+  return <><InterviewStage candidate={candidate} response={response} pending={pending} phase={phase} busy={busy} activeAgents={activeAgents} generationStatus={generationStatus} transcript={transcript} onGenerate={generate} onSend={send} onNext={next} onInterviewerReady={() => setPhase((current) => current === 'interviewer' && !response.done ? 'interviewer-ready' : current)} onAdvanceToCandidate={() => setPhase('candidate')} />{error && <p className="toast" role="alert">{error}</p>}</>;
 }
 
 createRoot(document.getElementById('root')).render(<App />);
