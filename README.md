@@ -59,6 +59,15 @@ candidate or paste a complete candidate JSON object, then start the interview.
 The conversation panel sends each answer to the API and renders the final
 feedback when the interview ends.
 
+## Temporary Access Gate
+
+The browser UI and interview API require the password configured in
+`ACCESS_PASSWORD`. The committed development default is `INTERVIEWMASTER`.
+Each IP receives five failed attempts before a ten-minute cooldown. Set
+`ACCESS_COOKIE_SECURE=true` in Dokploy so the access cookie is HTTPS-only, and
+configure the same access variables in Dokploy's application environment after
+merging the feature PR.
+
 ## Dokploy deployment preparation
 
 The repository includes `Dockerfile` and `docker-compose.yml` for Dokploy. The

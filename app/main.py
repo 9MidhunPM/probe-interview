@@ -5,16 +5,17 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Request, status
-from fastapi.responses import FileResponse, PlainTextResponse
+from fastapi import FastAPI, HTTPException, Request, Response, status
+from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
 from app.graph.graph import interview_graph
+from app.auth import access_gate
 from app.limiting import new_session_limiter
-from app.models import Feedback, InterviewRequest, InterviewResponse
+from app.models import Feedback, InterviewRequest, InterviewResponse, LoginRequest
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -32,6 +33,17 @@ async def discourage_indexing(request: Request, call_next):
     response = await call_next(request)
     response.headers["X-Robots-Tag"] = "noindex, nofollow, noarchive"
     return response
+
+
+@app.middleware("http")
+async def require_access(request: Request, call_next):
+    if request.url.path in {"/login", "/robots.txt"}:
+        return await call_next(request)
+    if access_gate.has_valid_session(request.cookies.get("probe_access")):
+        return await call_next(request)
+    if request.url.path.startswith("/api/") or request.url.path.startswith("/data/"):
+        return JSONResponse({"detail": "Authentication required."}, status_code=status.HTTP_401_UNAUTHORIZED)
+    return FileResponse(ROOT / "app" / "static" / "login.html")
 
 @app.post(
     "/api/interview",
@@ -57,6 +69,8 @@ def interview(request: Request, payload: InterviewRequest) -> InterviewResponse:
                 "candidate_message": None,
                 "current_topic_index": 0,
                 "awaiting_review": False,
+                "low_effort_count": 0,
+                "low_effort_topic_index": None,
                 "contradictions": [],
                 "turn_count": 0,
                 "ready_for_evaluation": False,
@@ -96,6 +110,29 @@ def interview(request: Request, payload: InterviewRequest) -> InterviewResponse:
 @app.get("/", include_in_schema=False)
 def frontend() -> FileResponse:
     return FileResponse(ROOT / "app" / "static" / "index.html")
+
+
+@app.get("/login", include_in_schema=False)
+def login_screen() -> FileResponse:
+    return FileResponse(ROOT / "app" / "static" / "login.html")
+
+
+@app.post("/login", include_in_schema=False)
+def login(request: Request, payload: LoginRequest) -> Response:
+    token, status_code = access_gate.login(get_remote_address(request), payload.password)
+    if token is None:
+        detail = "Too many failed attempts. Try again in 10 minutes." if status_code == 429 else "Incorrect password."
+        return JSONResponse({"detail": detail}, status_code=status_code)
+    response = JSONResponse({"ok": True})
+    response.set_cookie(
+        key="probe_access",
+        value=token,
+        httponly=True,
+        samesite="strict",
+        secure=os.getenv("ACCESS_COOKIE_SECURE", "false").lower() == "true",
+        max_age=3600 * int(os.getenv("ACCESS_SESSION_HOURS", "12")),
+    )
+    return response
 
 
 @app.get("/robots.txt", include_in_schema=False)
