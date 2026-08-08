@@ -8,9 +8,9 @@
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",
-    "vite": "latest",
     "react": "latest",
-    "react-dom": "latest"
-  },
-  "devDependencies": {}
+    "react-dom": "latest",
+    "react-markdown": "^10.1.0",
+    "vite": "latest"
+  }
 }
