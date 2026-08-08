@@ -30,6 +30,7 @@ frontend/node_modules/
 /classic-full-interview-*.png
 /onboarding-expanded-*.png
 /candidate-setup-scroll-*.png
+/landing-long-page-*.png
 
 # Ad-hoc local server logs written at the repository root.
 /*.log
