@@ -104,6 +104,14 @@ system prompts or provider instructions. Existing `reply`, `done`, and
 }
 ```
 
+**Answer simulation (additive helper endpoint)**
+
+`POST /api/simulate-answer` is separate from the graded interview endpoint. It
+accepts the current question, candidate context, and one of `confident`,
+`unsure`, or `vague`, then uses the extraction-tier model to generate a plausible
+candidate answer. The frontend submits that returned text to
+`POST /api/interview` unchanged. Custom candidate text bypasses this helper.
+
 ## 6. Inputs
 
 - `curriculum.json` — 31 days, 8 modules, each day has title/type/tools/objectives.
@@ -191,4 +199,6 @@ Per-agent model assignment via env-driven provider abstraction:
   scope; `SqliteSaver` as a resilience upgrade if time allows)
 - Deploy: Docker container via Dokploy, routed through existing Traefik +
   Cloudflare, unguessable/unlinked subdomain
-- Frontend: minimal chat UI (optional, demo quality — not spec-required)
+- Frontend: Vite + React single-page interview scene served by FastAPI. The
+  React build is emitted into `app/static` during Docker's Node build stage.
+  `/classic` preserves the prior static interface as an authenticated fallback.

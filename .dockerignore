@@ -10,3 +10,4 @@ tests/
 scripts/
 PRD.md
 AGENT.md
+frontend/node_modules/

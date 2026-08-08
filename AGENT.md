@@ -73,6 +73,10 @@ subdomain routed through existing Traefik/Cloudflare setup.
 Minimal chat UI consuming the endpoint. Build last, once backend is solid. The
 UI may surface the API's additive execution `trace` in a collapsed reasoning
 panel that shows agent names and safe structured outputs, never system prompts.
+The default frontend is a Vite + React SPA built into `app/static` by the
+Docker Node stage. Keep `/classic` serving the copied static UI as a fallback.
+`POST /api/simulate-answer` is a separate extraction-tier helper; its generated
+text must be submitted unchanged through the fixed `/api/interview` contract.
 
 ### Phase 8 — Demo testing
 Run all 20 sample candidates end-to-end. Deliberately try to break it —
