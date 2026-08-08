@@ -195,6 +195,7 @@ class ProbeRoutingTests(unittest.TestCase):
 
         self.assertEqual(update["probed_topic_index"], 0)
         self.assertEqual(update["review_history"][0]["review"]["probe_target"], "relevance threshold")
+        self.assertEqual(update["trace"], [{"agent": "Response Reviewer", "output": review.model_dump()}])
 
 
 def _object_schemas(value):

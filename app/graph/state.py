@@ -13,6 +13,7 @@ class InterviewState(TypedDict, total=False):
     topic_queue: list[dict[str, str]]
     current_topic_index: int
     transcript: Annotated[list[dict[str, str]], add]
+    trace: Annotated[list[dict], add]
     candidate_message: str | None
     awaiting_review: bool
     last_review: dict[str, str]

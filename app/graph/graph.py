@@ -28,13 +28,19 @@ logger = logging.getLogger("probe.graph")
 def strengths_finder_node(state: InterviewState) -> dict:
     strengths = find_strengths(get_extraction_model_provider(), state["candidate"])
     logger.info("agent=StrengthsFinder output=%s", strengths)
-    return {"strengths": strengths}
+    return {
+        "strengths": strengths,
+        "trace": [{"agent": "Strengths Finder", "output": {"strengths": strengths}}],
+    }
 
 
 def weaknesses_finder_node(state: InterviewState) -> dict:
     weaknesses = find_weaknesses(get_extraction_model_provider(), state["candidate"])
     logger.info("agent=WeaknessesFinder output=%s", weaknesses)
-    return {"weaknesses": weaknesses}
+    return {
+        "weaknesses": weaknesses,
+        "trace": [{"agent": "Weaknesses Finder", "output": {"weaknesses": weaknesses}}],
+    }
 
 
 def topic_planner_node(state: InterviewState) -> dict:
@@ -45,7 +51,10 @@ def topic_planner_node(state: InterviewState) -> dict:
         state["weaknesses"],
     )
     logger.info("agent=TopicPlanner output=%s", topic_queue)
-    return {"topic_queue": topic_queue}
+    return {
+        "topic_queue": topic_queue,
+        "trace": [{"agent": "Topic Planner", "output": {"topic_queue": topic_queue}}],
+    }
 
 
 def interviewer_node(state: InterviewState) -> dict:
@@ -85,6 +94,16 @@ def interviewer_node(state: InterviewState) -> dict:
         "reply": question,
         "awaiting_review": False,
         "ready_for_evaluation": False,
+        "trace": [
+            {
+                "agent": "Interviewer",
+                "output": {
+                    "reply": question,
+                    "topic": topic["topic"],
+                    "direction": last_review.get("signal"),
+                },
+            }
+        ],
     }
     logger.info(
         "agent=Interviewer input=%s output=%s",
@@ -138,6 +157,7 @@ def response_reviewer_node(state: InterviewState) -> dict:
         "probed_topic_index": topic_index if review.signal == "probe" else state.get("probed_topic_index"),
         "awaiting_review": False,
         "ready_for_evaluation": ready_for_evaluation,
+        "trace": [{"agent": "Response Reviewer", "output": review_data}],
     }
     logger.info("agent=ResponseReviewer input=%s output=%s", answer, update)
     return update
@@ -159,6 +179,7 @@ def consistency_checker_node(state: InterviewState) -> dict:
     update = {
         "last_consistency": result.model_dump(),
         "contradictions": [contradiction] if result.contradiction else [],
+        "trace": [{"agent": "Consistency Checker", "output": result.model_dump()}],
     }
     logger.info("agent=ConsistencyChecker input=%s output=%s", answer, update)
     return update
@@ -175,6 +196,15 @@ def evaluator_node(state: InterviewState) -> dict:
         "reply": evaluation.closing,
         "done": True,
         "feedback": evaluation.feedback.model_dump(),
+        "trace": [
+            {
+                "agent": "Evaluator",
+                "output": {
+                    "closing": evaluation.closing,
+                    "feedback": evaluation.feedback.model_dump(),
+                },
+            }
+        ],
     }
     logger.info("agent=Evaluator input=%s output=%s", state.get("transcript", []), update)
     return update

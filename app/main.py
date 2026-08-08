@@ -63,6 +63,7 @@ async def provider_unavailable(_: Request, __: ProviderUnavailableError):
 def interview(request: Request, payload: InterviewRequest) -> InterviewResponse:
     config = {"configurable": {"thread_id": payload.sessionId}}
     snapshot = interview_graph.get_state(config)
+    trace_start = len(snapshot.values.get("trace", []))
 
     if payload.candidate is not None:
         if snapshot.values:
@@ -75,6 +76,7 @@ def interview(request: Request, payload: InterviewRequest) -> InterviewResponse:
             {
                 "candidate": payload.candidate.model_dump(),
                 "transcript": [],
+                "trace": [],
                 "candidate_message": None,
                 "current_topic_index": 0,
                 "awaiting_review": False,
@@ -111,10 +113,12 @@ def interview(request: Request, payload: InterviewRequest) -> InterviewResponse:
             result = interview_graph.invoke(None, config)
 
     feedback = result.get("feedback")
+    trace = result.get("trace", [])[trace_start:]
     return InterviewResponse(
         reply=result["reply"],
         done=result.get("done", False),
         feedback=Feedback.model_validate(feedback) if feedback else None,
+        trace=trace,
     )
 
 

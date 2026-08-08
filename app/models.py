@@ -70,10 +70,16 @@ class Feedback(BaseModel):
     next: list[str]
 
 
+class TraceEntry(BaseModel):
+    agent: str
+    output: dict
+
+
 class InterviewResponse(BaseModel):
     reply: str
     done: bool
     feedback: Feedback | None = None
+    trace: list[TraceEntry] = Field(default_factory=list)
 
 
 class LoginRequest(BaseModel):
