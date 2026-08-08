@@ -24,6 +24,10 @@ frontend/node_modules/
 /intent-updated-*.png
 /bubble-*.png
 /probey-*.png
+/home-onboarding-*.png
+/candidate-editor-*.png
+/classic-home-*.png
+/classic-full-interview-*.png
 
 # Ad-hoc local server logs written at the repository root.
 /*.log
