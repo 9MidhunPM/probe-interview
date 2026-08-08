@@ -83,12 +83,6 @@ class InterviewResponse(BaseModel):
     trace: list[TraceEntry] = Field(default_factory=list)
 
 
-class LoginRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    password: str = Field(min_length=1)
-
-
 class SimulateAnswerRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

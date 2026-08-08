@@ -31,6 +31,7 @@ frontend/node_modules/
 /onboarding-expanded-*.png
 /candidate-setup-scroll-*.png
 /landing-long-page-*.png
+/gate-free-main-feedback-*.png
 
 # Ad-hoc local server logs written at the repository root.
 /*.log

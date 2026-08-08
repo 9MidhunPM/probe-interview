@@ -201,4 +201,4 @@ Per-agent model assignment via env-driven provider abstraction:
   Cloudflare, unguessable/unlinked subdomain
 - Frontend: Vite + React single-page interview scene served by FastAPI. The
   React build is emitted into `app/static` during Docker's Node build stage.
-  `/classic` preserves the prior static interface as an authenticated fallback.
+  `/classic` preserves an art-free chat alternative using the same API.

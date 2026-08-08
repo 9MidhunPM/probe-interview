@@ -1,93 +1,143 @@
 # Probe Interview
 
-Probe Interview is a LangGraph-orchestrated technical interview API. It exposes
-`POST /api/interview` and persists each interview through LangGraph checkpoints
-keyed by the caller's `sessionId`.
+An evidence-led technical interview practice room that turns a candidate's real mission history into an adaptive conversation with Dr. Probey, then explains what the interview found.
 
-## Current status
+[Live demo](https://probe.midhunpm.in)
 
-Phase 7 is implemented. OpenAI models run each stage: `gpt-4o-mini` extracts
-strengths and weaknesses, `gpt-4.1-mini` plans topics and reviews answers, and
-`gpt-5.6-luna` conducts and evaluates the interview. The Consistency Checker
-accumulates material conflicts between earlier claims and later answers for the
-final evaluator. The graph pauses after each question and resumes when the next
-candidate message is injected.
+![Probe Interview conversation view](docs/main-interview.png)
 
-Phase 5 hardening is active: per-IP request and new-session limits, message
-length validation, agent output-token caps, and prompt-injection boundaries.
-The minimal browser UI is active at `/`; deployment remains intentionally out of
-scope until Phase 6 is explicitly approved.
+## Contents
 
-## Run locally
+- [Features](#features)
+- [Architecture](#architecture)
+- [API](#api)
+- [Getting Started](#getting-started)
+- [Configuration](#configuration)
+- [Development](#development)
+- [Documentation](#documentation)
+- [AI-Assisted Development](#ai-assisted-development)
+- [License](#license)
 
-1. Install dependencies with `python3 -m pip install --break-system-packages -r requirements.txt`.
-3. Copy `.env.example` to `.env`, then set `OPENAI_API_KEY`.
-4. Start the server with `python3 -m uvicorn app.main:app --reload`.
+## Features
 
-Set `MAX_TURNS=2` while exercising the short examples below. The default is 14
-candidate answers per interview.
+- **Personalized interviews:** Builds a topic plan from roles, experience, mission outcomes, retries, and skips instead of a generic question bank.
+- **Adaptive follow-ups:** Adjusts difficulty and asks one targeted probe when an answer is vague or incomplete.
+- **Consistency checks:** Compares claims across turns so meaningful contradictions become useful interview questions.
+- **Inspectable reasoning:** Shows a safe, per-turn agent trace without exposing model instructions.
+- **Practice modes:** Generates confident, unsure, and vague answers for rapid exploration before a candidate writes their own response.
+- **Actionable feedback:** Ends with strengths, gaps, next steps, and a recap of Dr. Probey's interview approach.
+
+## Architecture
+
+FastAPI exposes the interview API and serves the Vite/React frontend. LangGraph coordinates a stateful seven-agent pipeline and pauses after every question. Its checkpointer stores state by `sessionId` as the LangGraph `thread_id`, allowing the next HTTP request to resume the same interview without a hand-rolled session store.
+
+| Agent | Role |
+| --- | --- |
+| Strengths Finder | Extracts evidence-backed strengths from mission history. |
+| Weaknesses Finder | Identifies retries, failed work, and skipped missions worth exploring. |
+| Topic Planner | Builds a short, role-aware topic plan from those signals. |
+| Interviewer / Dr. Probey | Conducts the conversation with one focused question at a time. |
+| Response Reviewer | Chooses whether to probe, advance, simplify, check in, or increase difficulty. |
+| Consistency Checker | Tracks material conflicts between claims across turns. |
+| Evaluator | Produces the final summary, strengths, gaps, next steps, and approach recap. |
+
+Groq is available for fast specialist work, while OpenAI powers Dr. Probey's conversation and final evaluation. The provider abstraction keeps model routing configurable through environment variables; the committed defaults use OpenAI.
+
+## Tech Stack
+
+- **Backend:** FastAPI and Pydantic
+- **Orchestration:** LangGraph `StateGraph` with a checkpointer
+- **Models:** Groq and OpenAI
+- **Frontend:** Vite and React
+- **Deployment:** Docker, Dokploy, and Traefik
 
 ## API
 
-Start an interview by sending `sessionId` and the complete candidate object.
-The setup agents use mission evidence to build the queue before returning the
-opening question. Send subsequent candidate responses with the same `sessionId`.
-The final response has `done: true` and a `feedback` object containing
-`summary`, `strengths`, `gaps`, and `next`.
+`POST /api/interview` starts or resumes an interview. A request must provide exactly one of `candidate` or `message`.
 
-```bash
-curl -sS -X POST http://127.0.0.1:8000/api/interview \
-  -H 'content-type: application/json' \
-  -d '{"sessionId":"local-demo","candidate":{"member":{"id":"CAND-010","name":"Gerald Combs","jobRole":"IT Support Specialist","yearsExperience":20,"education":"AAS Information Technology","status":"COMPLETED"},"missions":[{"day":8,"title":"Vector Databases Overview","passed":false,"attempts":4},{"day":27,"title":"Security, Privacy & Guardrails","skipped":true},{"day":28,"title":"Docker & Kubernetes Deployment","skipped":true}],"signals":{"commitDays":22,"missionsCompleted":23,"missionsFirstTry":1}}}'
-
-curl -sS -X POST http://127.0.0.1:8000/api/interview \
-  -H 'content-type: application/json' \
-  -d '{"sessionId":"local-demo","message":"I would begin by defining a clear interface, then add tests around the critical behavior."}'
-
-curl -sS -X POST http://127.0.0.1:8000/api/interview \
-  -H 'content-type: application/json' \
-  -d '{"sessionId":"local-demo","message":"I would instrument latency and error rates, then use the traces to isolate the regression."}'
+```json
+{
+  "sessionId": "practice-emily-001",
+  "candidate": {
+    "member": { "id": "CAND-003", "name": "Emily Chen", "jobRole": "AI Engineer", "yearsExperience": 6, "education": "MS Artificial Intelligence", "status": "COMPLETED" },
+    "missions": [{ "day": 7, "title": "Embeddings Explained", "passed": true, "attempts": 1 }],
+    "signals": { "commitDays": 31, "missionsCompleted": 31, "missionsFirstTry": 30 }
+  }
+}
 ```
 
-The last request returns the final feedback when `MAX_TURNS=2`.
+```json
+{
+  "reply": "What problem do embeddings solve in a retrieval system?",
+  "done": false,
+  "trace": [{ "agent": "Topic Planner", "output": { "topic_queue": [] } }]
+}
+```
 
-## Browser UI
+Send later answers with the same `sessionId`:
 
-Open `http://127.0.0.1:8000/` after starting the server. Select a supplied
-candidate or paste a complete candidate JSON object, then start the interview.
-The conversation panel sends each answer to the API and renders the final
-feedback when the interview ends.
+```json
+{ "sessionId": "practice-emily-001", "message": "They turn semantic similarity into a vector search problem." }
+```
 
-## Temporary Access Gate
+Completed responses set `done` to `true` and add `feedback` with `summary`, `strengths`, `gaps`, and `next`. See [PRD.md](PRD.md#5-api-contract-fixed-from-technical-specification) for the complete contract, validation behavior, trace details, and answer-simulation helper.
 
-The browser UI and interview API require the password configured in
-`ACCESS_PASSWORD`. The committed development default is `INTERVIEWMASTER`.
-Each IP receives five failed attempts before a ten-minute cooldown. Set
-`ACCESS_COOKIE_SECURE=true` in Dokploy so the access cookie is HTTPS-only, and
-configure the same access variables in Dokploy's application environment after
-merging the feature PR.
+## Getting Started
 
-## Model Routing
+### Requirements
 
-Default traffic uses OpenAI only. `ORCHESTRATOR_PROVIDER`,
-`REASONING_PROVIDER`, and `EXTRACTION_PROVIDER` select a provider per role and
-default to `openai`. Set a role to `groq` or `gemini` only for manual fallback;
-their keys and model variables remain optional. OpenAI retries transient rate
-limits, connection failures, and server failures twice with exponential backoff,
-then returns `503 Service Unavailable` with a `Retry-After` header.
+- Python 3.13+
+- Node.js 22+
+- An OpenAI API key for the default routing configuration
 
-## Dokploy deployment preparation
+```bash
+git clone https://github.com/9MidhunPM/probe-interview.git
+cd probe-interview
+python3.13 -m venv .venv
+. .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+npm --prefix frontend ci
+npm --prefix frontend run build
+python -m uvicorn app.main:app --reload
+```
 
-The repository includes `Dockerfile` and `docker-compose.yml` for Dokploy. The
-compose service uses the external `dokploy-network` and routes
-`probe.midhunpm.in` to container port `8000` through Traefik with Let's Encrypt.
+Set `OPENAI_API_KEY` in `.env`, then open [http://127.0.0.1:8000](http://127.0.0.1:8000). The application is public by design and protected by per-IP request and new-session rate limits.
 
-In Dokploy, create a GitHub-backed Dockerfile application from this repository
-after merging the deployment PR. Set every variable from `.env.example` in the
-application's environment settings, including all provider API keys. Do not add
-keys to the repository or Docker build arguments. Configure the domain in
-Dokploy as `probe.midhunpm.in`, HTTPS enabled with the Let's Encrypt resolver,
-and port `8000`.
+## Configuration
 
-Both the app and Traefik configuration send `X-Robots-Tag: noindex, nofollow,
-noarchive`; `/robots.txt` disallows all crawling.
+| Variable | Purpose | Required |
+| --- | --- | --- |
+| `OPENAI_API_KEY` | Default model provider key | Yes for default routing |
+| `GROQ_API_KEY` | Key for Groq-backed specialist routing | Only when selecting Groq |
+| `ORCHESTRATOR_PROVIDER` | Provider for the interviewer and evaluator | No, defaults to `openai` |
+| `REASONING_PROVIDER` | Provider for planning and review work | No, defaults to `openai` |
+| `EXTRACTION_PROVIDER` | Provider for extraction and answer simulation | No, defaults to `openai` |
+| `MAX_TURNS` | Maximum candidate answers in one interview | No, defaults to `15` |
+| `RATE_LIMIT_REQUESTS_PER_MINUTE` | Per-IP request limit | No, defaults to `60` |
+| `RATE_LIMIT_NEW_SESSIONS_PER_HOUR` | Per-IP interview-start limit | No, defaults to `10` |
+
+See [.env.example](.env.example) for model names, retry settings, and optional Gemini fallback configuration.
+
+## Development
+
+```bash
+. .venv/bin/activate
+python -m pytest
+npm --prefix frontend run build
+```
+
+The frontend build writes to `app/static`, which FastAPI serves at `/`. Use `/classic` for the art-free chat interface.
+
+## Documentation
+
+- [PRD.md](PRD.md) documents the product intent, API contract, agents, routing, and deployment model.
+- [AGENT.md](AGENT.md) documents coding constraints and the system's build and verification expectations.
+
+## AI-Assisted Development
+
+Probe Interview was built with AI-assisted development: Claude supported planning and architecture, while GPT-5.6 Terra via OpenCode supported implementation. A fuller AI Usage Log will be added before submission.
+
+## License
+
+[MIT](LICENSE)

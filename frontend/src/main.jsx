@@ -16,21 +16,6 @@ async function request(path, options = {}) {
 
 function Markdown({ children }) { return <div className="markdown-content"><ReactMarkdown>{children}</ReactMarkdown></div>; }
 
-function Login({ onAuthenticated }) {
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [sending, setSending] = useState(false);
-  async function submit(event) {
-    event.preventDefault();
-    setSending(true);
-    setError('');
-    try { await request('/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ password }) }); onAuthenticated(); }
-    catch (err) { setError(err.message); }
-    finally { setSending(false); }
-  }
-  return <main className="gate"><section className="gate-card"><p className="kicker">Private practice room</p><h1>Probe Interview</h1><p>Enter the access password to begin a guided technical conversation.</p><form onSubmit={submit}><label htmlFor="password">Access password<input id="password" type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} required autoFocus /></label><button disabled={sending}>{sending ? 'Checking access...' : 'Enter the room'}</button><p className="error" role="alert">{error}</p></form></section></main>;
-}
-
 function Home({ onStart }) {
   const features = [
     ['Personalized plan', 'Topic planning begins with actual mission history, retries, skips, role, and experience.'],
@@ -109,7 +94,6 @@ function InterviewStage({ candidate, response, transcript, trace, busy, generati
 }
 
 function App() {
-  const [auth, setAuth] = useState('checking');
   const [screen, setScreen] = useState('home');
   const [candidate, setCandidate] = useState(null);
   const [response, setResponse] = useState(null);
@@ -119,12 +103,9 @@ function App() {
   const [busy, setBusy] = useState(false);
   const [generating, setGenerating] = useState('');
   const [error, setError] = useState('');
-  useEffect(() => { request('/api/session').then(() => setAuth('yes')).catch(() => setAuth('no')); }, []);
   async function start(selected) { const id = crypto.randomUUID(); setBusy(true); try { const next = await request('/api/interview', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sessionId: id, candidate: selected }) }); setCandidate(selected); setSessionId(id); setResponse(next); setTranscript([{ speaker: 'Dr. Probey', message: next.reply }]); setTrace(next.trace || []); } catch (err) { setError(err.message); } finally { setBusy(false); } }
   async function generate(style) { setGenerating(style); setBusy(true); try { return (await request('/api/simulate-answer', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ question: response.reply, candidate, style }) })).answer; } catch (err) { setError(err.message); return ''; } finally { setBusy(false); setGenerating(''); } }
   async function send(message) { setBusy(true); setTranscript((current) => [...current, { speaker: candidate.member.name, message }]); try { const next = await request('/api/interview', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sessionId, message }) }); setResponse(next); setTrace(next.trace || []); setTranscript((current) => [...current, { speaker: 'Dr. Probey', message: next.reply }]); } catch (err) { setError(err.message); } finally { setBusy(false); } }
-  if (auth === 'checking') return <main className="loading">Opening interview room...</main>;
-  if (auth === 'no') return <Login onAuthenticated={() => setAuth('yes')} />;
   if (!response && screen === 'home') return <Home onStart={() => setScreen('setup')} />;
   if (!response) return <><CandidateSetup onStart={start} onBack={() => setScreen('home')} />{error && <p className="toast" role="alert">{error}</p>}</>;
   return <><InterviewStage candidate={candidate} response={response} transcript={transcript} trace={trace} busy={busy} generating={generating} onGenerate={generate} onSend={send} onCloseFeedback={() => {}} />{error && <p className="toast" role="alert">{error}</p>}</>;

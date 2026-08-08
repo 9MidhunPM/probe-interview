@@ -66,8 +66,9 @@ instruction-override compliance, no echoing internal prompts), input
 validation with graceful error responses (no 500s on malformed input).
 
 ### Phase 6 — Deploy
-Dockerfile, Dokploy config, README deploy instructions, unguessable
-subdomain routed through existing Traefik/Cloudflare setup.
+Dockerfile, Dokploy config, and README deployment instructions for the public
+service routed through the existing Traefik/Cloudflare setup. Preserve the
+per-IP request and new-session rate limits when changing deployment code.
 
 ### Phase 7 — Frontend (optional)
 Minimal chat UI consuming the endpoint. Build last, once backend is solid. The
@@ -135,6 +136,8 @@ GEMINI_MODEL=
 
 MAX_TURNS=14
 MAX_MESSAGE_CHARS=2000
+RATE_LIMIT_REQUESTS_PER_MINUTE=60
+RATE_LIMIT_NEW_SESSIONS_PER_HOUR=10
 ```
 
 ## Definition of done for "first pass" (end of Phase 4, before hardening/polish)
