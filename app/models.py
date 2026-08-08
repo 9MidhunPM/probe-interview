@@ -5,6 +5,7 @@ from pydantic import BaseModel, ConfigDict, model_validator
 
 class Member(BaseModel):
     model_config = ConfigDict(extra="forbid")
+
     id: str
     name: str
     jobRole: str
@@ -15,6 +16,7 @@ class Member(BaseModel):
 
 class Mission(BaseModel):
     model_config = ConfigDict(extra="forbid")
+
     day: int
     title: str
     passed: bool | None = None
@@ -24,6 +26,7 @@ class Mission(BaseModel):
 
 class Signals(BaseModel):
     model_config = ConfigDict(extra="forbid")
+
     commitDays: int
     missionsCompleted: int
     missionsFirstTry: int
@@ -31,6 +34,7 @@ class Signals(BaseModel):
 
 class Candidate(BaseModel):
     model_config = ConfigDict(extra="forbid")
+
     member: Member
     missions: list[Mission]
     signals: Signals
@@ -38,6 +42,7 @@ class Candidate(BaseModel):
 
 class InterviewRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
+
     sessionId: str
     candidate: Candidate | None = None
     message: str | None = None
@@ -50,6 +55,8 @@ class InterviewRequest(BaseModel):
 
 
 class Feedback(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     summary: str
     strengths: list[str]
     gaps: list[str]

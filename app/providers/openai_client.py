@@ -15,7 +15,29 @@ class OpenAIProvider:
         self._model = model
 
     def generate(self, *, instructions: str, input_text: str) -> str:
-        response = self._client.responses.create(model=self._model, instructions=instructions, input=input_text)
+        response = self._client.responses.create(
+            model=self._model,
+            instructions=instructions,
+            input=input_text,
+        )
         if not response.output_text:
             raise RuntimeError("OpenAI returned no text output.")
+        return response.output_text
+
+    def generate_json(self, *, instructions: str, input_text: str, schema: dict) -> str:
+        response = self._client.responses.create(
+            model=self._model,
+            instructions=instructions,
+            input=input_text,
+            text={
+                "format": {
+                    "type": "json_schema",
+                    "name": "probe_response",
+                    "schema": schema,
+                    "strict": True,
+                }
+            },
+        )
+        if not response.output_text:
+            raise RuntimeError("OpenAI returned no structured output.")
         return response.output_text

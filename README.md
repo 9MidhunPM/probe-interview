@@ -6,20 +6,21 @@ keyed by the caller's `sessionId`.
 
 ## Current status
 
-Phase 1 is implemented: a minimal real graph with two strong-model nodes:
-`Interviewer` and `Evaluator`. The graph pauses after each generated question,
-resumes when the next candidate message is injected, and ends with the required
-structured feedback object.
+Phase 2 is implemented. Strengths Finder, Weaknesses Finder, and Topic Planner
+run once at session start through Groq, then the OpenAI Interviewer asks from
+the resulting role- and evidence-based topic queue. The graph pauses after each
+question, resumes when the next candidate message is injected, and ends with
+the required structured feedback object.
 
-Candidate-history personalization, Groq sub-agents, adaptive routing,
-consistency checks, hardening, deployment, and a frontend are intentionally not
-implemented until their respective phases.
+Response reviewing, adaptive routing, consistency checks, hardening,
+deployment, and a frontend are intentionally not implemented until their
+respective phases.
 
 ## Run locally
 
 1. Create and activate a virtual environment.
 2. Install dependencies with `pip install -r requirements.txt`.
-3. Copy `.env.example` to `.env`, then set `OPENAI_API_KEY` and `OPENAI_MODEL`.
+3. Copy `.env.example` to `.env`, then set the OpenAI, Groq, and Gemini keys.
 4. Start the server with `uvicorn app.main:app --reload`.
 
 Set `MAX_TURNS=2` while exercising the short examples below. The default is 14
@@ -28,14 +29,15 @@ candidate answers per interview.
 ## API
 
 Start an interview by sending `sessionId` and the complete candidate object.
-Send subsequent candidate responses with the same `sessionId` and `message`.
+The setup agents use mission evidence to build the queue before returning the
+opening question. Send subsequent candidate responses with the same `sessionId`.
 The final response has `done: true` and a `feedback` object containing
 `summary`, `strengths`, `gaps`, and `next`.
 
 ```bash
 curl -sS -X POST http://127.0.0.1:8000/api/interview \
   -H 'content-type: application/json' \
-  -d '{"sessionId":"local-demo","candidate":{"member":{"id":"demo-1","name":"Ada","jobRole":"Software Engineer","yearsExperience":3,"education":"BS Computer Science","status":"COMPLETED"},"missions":[],"signals":{"commitDays":20,"missionsCompleted":20,"missionsFirstTry":10}}}'
+  -d '{"sessionId":"local-demo","candidate":{"member":{"id":"CAND-010","name":"Gerald Combs","jobRole":"IT Support Specialist","yearsExperience":20,"education":"AAS Information Technology","status":"COMPLETED"},"missions":[{"day":8,"title":"Vector Databases Overview","passed":false,"attempts":4},{"day":27,"title":"Security, Privacy & Guardrails","skipped":true},{"day":28,"title":"Docker & Kubernetes Deployment","skipped":true}],"signals":{"commitDays":22,"missionsCompleted":23,"missionsFirstTry":1}}}'
 
 curl -sS -X POST http://127.0.0.1:8000/api/interview \
   -H 'content-type: application/json' \

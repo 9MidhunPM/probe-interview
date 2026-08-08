@@ -8,6 +8,9 @@ from typing_extensions import TypedDict
 
 class InterviewState(TypedDict, total=False):
     candidate: dict
+    strengths: list[str]
+    weaknesses: list[str]
+    topic_queue: list[dict[str, str]]
     transcript: Annotated[list[dict[str, str]], add]
     candidate_message: str | None
     turn_count: int

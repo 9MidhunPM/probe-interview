@@ -4,15 +4,38 @@ import os
 from typing import Protocol
 
 
-class StrongModelProvider(Protocol):
+class ModelProvider(Protocol):
     def generate(self, *, instructions: str, input_text: str) -> str: ...
+
+    def generate_json(
+        self, *, instructions: str, input_text: str, schema: dict
+    ) -> str: ...
+
+
+StrongModelProvider = ModelProvider
+
+
+def _get_provider(provider: str) -> ModelProvider:
+    if provider == "openai":
+        from app.providers.openai_client import OpenAIProvider
+
+        return OpenAIProvider()
+    if provider == "groq":
+        from app.providers.groq_client import GroqProvider
+
+        return GroqProvider()
+    if provider == "gemini":
+        from app.providers.gemini_client import GeminiProvider
+
+        return GeminiProvider()
+    raise RuntimeError("Provider must be 'openai', 'groq', or 'gemini'.")
 
 
 def get_strong_model_provider() -> StrongModelProvider:
     provider = os.getenv("STRONG_PROVIDER", "openai").lower()
-    if provider == "openai":
-        from app.providers.openai_client import OpenAIProvider
-        return OpenAIProvider()
-    if provider == "gemini":
-        raise RuntimeError("Gemini is scheduled for Phase 2; use STRONG_PROVIDER=openai.")
-    raise RuntimeError("STRONG_PROVIDER must be 'openai' or 'gemini'.")
+    return _get_provider(provider)
+
+
+def get_setup_model_provider() -> ModelProvider:
+    """Use Groq by default; Gemini is an env-selectable fallback."""
+    return _get_provider(os.getenv("SETUP_PROVIDER", "groq").lower())
