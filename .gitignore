@@ -23,6 +23,7 @@ frontend/node_modules/
 /composer-rebuild-*.png
 /intent-updated-*.png
 /bubble-*.png
+/probey-*.png
 
 # Ad-hoc local server logs written at the repository root.
 /*.log

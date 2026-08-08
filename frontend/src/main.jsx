@@ -10,6 +10,7 @@ const responseStyles = [
   ['unsure', 'Act unsure'],
   ['vague', 'Give a vague answer'],
 ];
+const displayAgent = (agent) => agent === 'Interviewer' ? 'Dr. Probey' : agent;
 
 async function request(path, options = {}) {
   const response = await fetch(path, options);
@@ -77,11 +78,11 @@ function CandidateSetup({ onStart }) {
 }
 
 function TranscriptPanel({ transcript }) {
-  return <section className="transcript-panel" aria-label="Interview transcript"><header><h3>Transcript</h3><span>{transcript.length} turns</span></header><div className="transcript-log">{transcript.map((turn, index) => <div className={`transcript-message ${turn.speaker === 'Interviewer' ? 'from-interviewer' : 'from-candidate'}`} key={`${turn.speaker}-${index}`}><strong>{turn.speaker}</strong><p>{turn.message}</p></div>)}</div></section>;
+  return <section className="transcript-panel" aria-label="Interview transcript"><header><h3>Transcript</h3><span>{transcript.length} turns</span></header><div className="transcript-log">{transcript.map((turn, index) => <div className={`transcript-message ${turn.speaker === 'Dr. Probey' ? 'from-interviewer' : 'from-candidate'}`} key={`${turn.speaker}-${index}`}><strong>{turn.speaker}</strong><p>{turn.message}</p></div>)}</div></section>;
 }
 
 function TraceModal({ entry, onClose }) {
-  return <div className="feedback-overlay" role="presentation" onClick={onClose}><section className="trace-modal" role="dialog" aria-modal="true" aria-labelledby="trace-title" onClick={(event) => event.stopPropagation()}><header><p className="kicker">Live graph output</p><h2 id="trace-title">{entry.agent}</h2><button className="modal-close" type="button" aria-label="Close agent output" onClick={onClose}>Close</button></header><pre>{JSON.stringify(entry.output, null, 2)}</pre></section></div>;
+  return <div className="feedback-overlay" role="presentation" onClick={onClose}><section className="trace-modal" role="dialog" aria-modal="true" aria-labelledby="trace-title" onClick={(event) => event.stopPropagation()}><header><p className="kicker">Live graph output</p><h2 id="trace-title">{displayAgent(entry.agent)}</h2><button className="modal-close" type="button" aria-label="Close agent output" onClick={onClose}>Close</button></header><pre>{JSON.stringify(entry.output, null, 2)}</pre></section></div>;
 }
 
 function TraceSidebar({ trace, history, activeAgents, generationStatus, generationOutput, transcript }) {
@@ -96,12 +97,16 @@ function TraceSidebar({ trace, history, activeAgents, generationStatus, generati
     const active = activeAgents.includes(agent) || (isGenerator && generationStatus === 'active');
     const complete = Boolean(currentEntry) || (isGenerator && generationStatus === 'complete');
     const state = active ? 'working' : complete ? 'complete' : entry ? 'available' : 'idle';
-    return <section className={`agent-row ${state}`} key={agent}><button type="button" onClick={() => entry && setSelectedEntry(entry)} disabled={!entry}><span className="agent-dot" /><strong>{agent}</strong><small>{state}</small></button></section>;
+    return <section className={`agent-row ${state}`} key={agent}><button type="button" onClick={() => entry && setSelectedEntry(entry)} disabled={!entry}><span className="agent-dot" /><strong>{displayAgent(agent)}</strong><small>{state}</small></button></section>;
   })}</div><TranscriptPanel transcript={transcript} />{selectedEntry && <TraceModal entry={selectedEntry} onClose={() => setSelectedEntry(null)} />}</aside>;
 }
 
 function FeedbackModal({ feedback, onClose }) {
-  return <div className="feedback-overlay" role="presentation" onClick={onClose}><section className="feedback-modal" role="dialog" aria-modal="true" aria-labelledby="feedback-title" onClick={(event) => event.stopPropagation()}><header><p className="kicker">Interview complete</p><h2 id="feedback-title">Session feedback</h2><button className="modal-close" type="button" aria-label="Close feedback" onClick={onClose}>Close</button></header><div className="feedback-body"><p className="feedback-summary">{feedback.summary}</p><section><h3>Strengths</h3><ul>{feedback.strengths.map((item) => <li key={item}>{item}</li>)}</ul></section><section><h3>Gaps</h3><ul>{feedback.gaps.map((item) => <li key={item}>{item}</li>)}</ul></section><section><h3>Next steps</h3><ul>{(feedback.next || []).map((item) => <li key={item}>{item}</li>)}</ul></section></div></section></div>;
+  return <div className="feedback-overlay" role="presentation" onClick={onClose}><section className="feedback-modal" role="dialog" aria-modal="true" aria-labelledby="feedback-title" onClick={(event) => event.stopPropagation()}><header><p className="kicker">Interview complete</p><h2 id="feedback-title">Session feedback</h2><button className="modal-close" type="button" aria-label="Close feedback" onClick={onClose}>Close</button></header><div className="feedback-body"><p className="feedback-summary">{feedback.summary}</p>{feedback.approach?.length > 0 && <section className="probey-approach"><h3>Dr. Probey&apos;s approach</h3><ul>{feedback.approach.map((item) => <li key={item}>{item}</li>)}</ul></section>}<section><h3>Strengths</h3><ul>{feedback.strengths.map((item) => <li key={item}>{item}</li>)}</ul></section><section><h3>Gaps</h3><ul>{feedback.gaps.map((item) => <li key={item}>{item}</li>)}</ul></section><section><h3>Next steps</h3><ul>{(feedback.next || []).map((item) => <li key={item}>{item}</li>)}</ul></section></div></section></div>;
+}
+
+function ProbeyMoment({ message, onDismiss }) {
+  return <aside className="probey-moment" role="status"><strong>Dr. Probey</strong><span>{message}</span><button type="button" aria-label="Dismiss Dr. Probey moment" onClick={onDismiss}>Close</button></aside>;
 }
 
 function InterviewStage({ candidate, response, phase, pending, busy, activeAgents, generationStatus, transcript, traceHistory, generationOutput, onGenerate, onSend, onNext, onInterviewerReady, onAdvanceToCandidate }) {
@@ -225,6 +230,7 @@ function App() {
   const [traceHistory, setTraceHistory] = useState({});
   const [transcript, setTranscript] = useState([]);
   const [error, setError] = useState('');
+  const [dismissedMoment, setDismissedMoment] = useState('');
 
   useEffect(() => { request('/api/session').then(() => setAuth('yes')).catch(() => setAuth('no')); }, []);
 
@@ -240,7 +246,7 @@ function App() {
       setSessionId(id);
       setResponse(next);
       setPhase('interviewer');
-      setTranscript([{ speaker: 'Interviewer', message: next.reply }]);
+      setTranscript([{ speaker: 'Dr. Probey', message: next.reply }]);
       setTraceHistory(Object.fromEntries((next.trace || []).map((entry) => [entry.agent, entry])));
     } catch (err) {
       setError(err.message);
@@ -278,6 +284,7 @@ function App() {
       const next = await request('/api/interview', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sessionId, message: answer }) });
       setPending(next);
       setTraceHistory((current) => ({ ...current, ...Object.fromEntries((next.trace || []).map((entry) => [entry.agent, entry])) }));
+      const signal = next.trace?.find((entry) => entry.agent === 'Response Reviewer')?.output?.signal;
       setPhase('candidate-complete');
     } catch (err) {
       setError(err.message);
@@ -290,16 +297,27 @@ function App() {
 
   function next() {
     if (!pending) return;
-    setTranscript((current) => [...current, { speaker: 'Interviewer', message: pending.reply }]);
-    setResponse(pending);
+    setTranscript((current) => [...current, { speaker: 'Dr. Probey', message: pending.reply }]);
+    const approach = pending.trace?.find((entry) => entry.agent === 'Evaluator')?.output?.approach || [];
+    setResponse({ ...pending, feedback: pending.feedback ? { ...pending.feedback, approach } : pending.feedback });
     setPending(null);
     setPhase('interviewer');
   }
 
+  const pendingSignal = pending ? traceHistory['Response Reviewer']?.output?.signal : null;
+  const pendingMoment = { probe: 'is digging deeper into that answer.', escalate: 'is raising the bar with a harder follow-up.', check_in: 'is checking in before changing direction.', advance: 'is moving to a new focus while the reasoning is still fresh.', simplify: 'is reframing the question from a different angle.' }[pendingSignal];
+  const showMoment = phase === 'candidate-complete' && transcript.length % 4 === 2 && dismissedMoment !== pending?.reply;
+
+  useEffect(() => {
+    if (!showMoment) return undefined;
+    const timer = window.setTimeout(() => setDismissedMoment(pending.reply), 8000);
+    return () => window.clearTimeout(timer);
+  }, [showMoment, pending]);
+
   if (auth === 'checking') return <main className="loading">Opening interview room...</main>;
   if (auth === 'no') return <Login onAuthenticated={() => setAuth('yes')} />;
   if (!response) return <CandidateSetup onStart={start} />;
-  return <><InterviewStage candidate={candidate} response={response} pending={pending} phase={phase} busy={busy} activeAgents={activeAgents} generationStatus={generationStatus} transcript={transcript} traceHistory={traceHistory} generationOutput={generationOutput} onGenerate={generate} onSend={send} onNext={next} onInterviewerReady={() => setPhase((current) => current === 'interviewer' && !response.done ? 'interviewer-ready' : current)} onAdvanceToCandidate={() => setPhase('candidate')} />{error && <p className="toast" role="alert">{error}</p>}</>;
+  return <><InterviewStage candidate={candidate} response={response} pending={pending} phase={phase} busy={busy} activeAgents={activeAgents} generationStatus={generationStatus} transcript={transcript} traceHistory={traceHistory} generationOutput={generationOutput} onGenerate={generate} onSend={send} onNext={next} onInterviewerReady={() => setPhase((current) => current === 'interviewer' && !response.done ? 'interviewer-ready' : current)} onAdvanceToCandidate={() => setPhase('candidate')} />{showMoment && <ProbeyMoment message={pendingMoment || 'is weighing the next turn.'} onDismiss={() => setDismissedMoment(pending.reply)} />}{error && <p className="toast" role="alert">{error}</p>}</>;
 }
 
 createRoot(document.getElementById('root')).render(<App />);

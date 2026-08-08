@@ -14,11 +14,11 @@ class PlannedTopic(BaseModel):
 
 
 class TopicPlan(BaseModel):
-    topic_queue: list[PlannedTopic] = Field(min_length=4, max_length=6)
+    topic_queue: list[PlannedTopic] = Field(min_length=3, max_length=4)
 
 
 INSTRUCTIONS = """You plan a focused technical interview from a candidate's
-role and evidence-based strengths and weaknesses. Return 4 to 6 ordered topics.
+role and evidence-based strengths and weaknesses. Return 3 to 4 ordered topics.
 Prioritize material gaps that matter for the job role, include one confirmed
 first-try-pass strength for calibration only when one exists, and make every
 rationale cite supplied evidence. Do

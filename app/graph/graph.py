@@ -139,13 +139,26 @@ def response_reviewer_node(state: InterviewState) -> dict:
         and state.get("low_effort_topic_index") == topic_index
         else 1 if review.engagement in {"low", "disengaged"} else 0
     )
+    # Reserve the closing stretch for wrapping a topic rather than opening a fresh
+    # probe that the turn budget cannot meaningfully resolve.
+    remaining_turns = _max_conversation_turns() - len(transcript)
+    if remaining_turns <= 3 and review.signal in {"probe", "escalate"}:
+        review = review.model_copy(
+            update={
+                "signal": "advance",
+                "probe_target": None,
+                "rationale": "Advanced to preserve room for a natural interview conclusion.",
+            }
+        )
     if review.signal == "advance":
         topic_index += 1
         low_effort_count = 0
     review_data = review.model_dump()
     ready_for_evaluation = (
         review.signal == "end"
-        or state["turn_count"] >= _max_turns()
+        # MAX_TURNS is a conversation-entry budget, not a candidate-answer budget.
+        # The evaluator's closing reply becomes the final entry, so stop one entry early.
+        or len(transcript) >= _max_conversation_turns() - 1
         or topic_index >= len(state["topic_queue"])
     )
     update = {
@@ -202,6 +215,7 @@ def evaluator_node(state: InterviewState) -> dict:
                 "output": {
                     "closing": evaluation.closing,
                     "feedback": evaluation.feedback.model_dump(),
+                    "approach": _probey_approach(state.get("review_history", [])),
                 },
             }
         ],
@@ -243,8 +257,25 @@ def build_graph():
     return builder.compile(checkpointer=MemorySaver(), interrupt_after=["interviewer"])
 
 
-def _max_turns() -> int:
-    return int(os.getenv("MAX_TURNS", "14"))
+def _max_conversation_turns() -> int:
+    return max(5, int(os.getenv("MAX_TURNS", "15")))
+
+
+def _probey_approach(review_history: list[dict]) -> list[str]:
+    moments: list[str] = []
+    for entry in review_history:
+        topic = entry.get("topic", {}).get("topic", "that topic")
+        review = entry.get("review", {})
+        signal = review.get("signal")
+        if signal == "probe":
+            moments.append(f"Dr. Probey dug deeper into {topic} to test the reasoning behind a key claim.")
+        elif signal == "escalate":
+            moments.append(f"Dr. Probey raised the bar on {topic} with a harder implementation or trade-off follow-up.")
+        elif signal == "advance":
+            moments.append(f"Dr. Probey moved on from {topic} after getting enough signal to focus the remaining time.")
+        elif signal == "check_in":
+            moments.append(f"Dr. Probey checked in during {topic} rather than forcing another version of the same question.")
+    return moments[:3] or ["Dr. Probey kept the conversation focused on the strongest available evidence from your answers."]
 
 
 interview_graph = build_graph()
