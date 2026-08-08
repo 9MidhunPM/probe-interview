@@ -19,6 +19,10 @@ frontend/node_modules/
 /generated-answer-*.png
 /mid-conversation-*.png
 /feedback-popup-*.png
+/persistent-*.png
+/composer-rebuild-*.png
+/intent-updated-*.png
+/bubble-*.png
 
 # Ad-hoc local server logs written at the repository root.
 /*.log
