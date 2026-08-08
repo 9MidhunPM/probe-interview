@@ -9,10 +9,11 @@ from langgraph.graph import END, START, StateGraph
 
 from app.agents.evaluator import generate_feedback
 from app.agents.interviewer import generate_question
+from app.agents.response_reviewer import review_answer
 from app.agents.strengths_finder import find_strengths
 from app.agents.topic_planner import plan_topics
 from app.agents.weaknesses_finder import find_weaknesses
-from app.graph.routing import route_after_interviewer
+from app.graph.routing import route_after_interviewer, route_after_reviewer
 from app.graph.state import InterviewState
 from app.providers.base import get_setup_model_provider, get_strong_model_provider
 
@@ -50,25 +51,31 @@ def interviewer_node(state: InterviewState) -> dict:
     if candidate_message is not None:
         transcript.append({"role": "candidate", "content": candidate_message})
         turn_count += 1
-        if turn_count >= _max_turns():
-            update = {
-                "transcript": transcript,
-                "candidate_message": None,
-                "turn_count": turn_count,
-                "ready_for_evaluation": True,
-            }
-            logger.info("agent=Interviewer input=%s output=%s", candidate_message, update)
-            return update
+        update = {
+            "transcript": transcript,
+            "candidate_message": None,
+            "turn_count": turn_count,
+            "awaiting_review": True,
+        }
+        logger.info("agent=Interviewer input=%s output=%s", candidate_message, update)
+        return update
 
     full_transcript = state.get("transcript", []) + transcript
     topic_queue = state["topic_queue"]
-    topic = topic_queue[min(turn_count, len(topic_queue) - 1)]
-    question = generate_question(get_strong_model_provider(), full_transcript, topic)
+    topic = topic_queue[state.get("current_topic_index", 0)]
+    last_review = state.get("last_review", {})
+    question = generate_question(
+        get_strong_model_provider(),
+        full_transcript,
+        topic,
+        last_review.get("signal"),
+    )
     update = {
         "transcript": transcript + [{"role": "interviewer", "content": question}],
         "candidate_message": None,
         "turn_count": turn_count,
         "reply": question,
+        "awaiting_review": False,
         "ready_for_evaluation": False,
     }
     logger.info(
@@ -76,6 +83,36 @@ def interviewer_node(state: InterviewState) -> dict:
         json.dumps(full_transcript),
         json.dumps(update),
     )
+    return update
+
+
+def response_reviewer_node(state: InterviewState) -> dict:
+    transcript = state["transcript"]
+    answer = next(entry["content"] for entry in reversed(transcript) if entry["role"] == "candidate")
+    question = next(
+        entry["content"] for entry in reversed(transcript[:-1]) if entry["role"] == "interviewer"
+    )
+    topic_index = state.get("current_topic_index", 0)
+    review = review_answer(
+        get_setup_model_provider(),
+        question=question,
+        answer=answer,
+        topic=state["topic_queue"][topic_index],
+    )
+    if review.signal == "advance":
+        topic_index += 1
+    ready_for_evaluation = (
+        review.signal == "end"
+        or state["turn_count"] >= _max_turns()
+        or topic_index >= len(state["topic_queue"])
+    )
+    update = {
+        "current_topic_index": topic_index,
+        "last_review": review.model_dump(),
+        "awaiting_review": False,
+        "ready_for_evaluation": ready_for_evaluation,
+    }
+    logger.info("agent=ResponseReviewer input=%s output=%s", answer, update)
     return update
 
 
@@ -96,6 +133,7 @@ def build_graph():
     builder.add_node("weaknesses_finder", weaknesses_finder_node)
     builder.add_node("topic_planner", topic_planner_node)
     builder.add_node("interviewer", interviewer_node)
+    builder.add_node("response_reviewer", response_reviewer_node)
     builder.add_node("evaluator", evaluator_node)
     builder.add_edge(START, "strengths_finder")
     builder.add_edge("strengths_finder", "weaknesses_finder")
@@ -104,6 +142,15 @@ def build_graph():
     builder.add_conditional_edges(
         "interviewer",
         route_after_interviewer,
+        {
+            "response_reviewer": "response_reviewer",
+            "interviewer": "interviewer",
+            "evaluator": "evaluator",
+        },
+    )
+    builder.add_conditional_edges(
+        "response_reviewer",
+        route_after_reviewer,
         {"interviewer": "interviewer", "evaluator": "evaluator"},
     )
     builder.add_edge("evaluator", END)

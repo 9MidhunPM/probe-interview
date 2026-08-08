@@ -30,18 +30,42 @@ def interview(request: InterviewRequest) -> InterviewResponse:
                 detail="An interview already exists for this sessionId.",
             )
         result = interview_graph.invoke(
-            {"candidate": request.candidate.model_dump(), "transcript": [], "candidate_message": None, "turn_count": 0, "ready_for_evaluation": False, "done": False}, config,
+            {
+                "candidate": request.candidate.model_dump(),
+                "transcript": [],
+                "candidate_message": None,
+                "current_topic_index": 0,
+                "awaiting_review": False,
+                "turn_count": 0,
+                "ready_for_evaluation": False,
+                "done": False,
+            },
+            config,
         )
     else:
         if not snapshot.values:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No interview exists for this sessionId. Start with candidate.")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="No interview exists for this sessionId. Start with candidate.",
+            )
         if snapshot.values.get("done"):
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="This interview has already completed.")
-        resume_config = interview_graph.update_state(config, {"candidate_message": request.message}, as_node="interviewer")
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="This interview has already completed.",
+            )
+        resume_config = interview_graph.update_state(
+            config,
+            {"candidate_message": request.message},
+            as_node="interviewer",
+        )
         result = interview_graph.invoke(None, resume_config)
-        if result.get("ready_for_evaluation"):
-            # Resume the latest checkpoint, which is now queued for Evaluator.
+        if result.get("awaiting_review"):
+            # Resume the reviewer and its deterministic routing decision.
             result = interview_graph.invoke(None, config)
 
     feedback = result.get("feedback")
-    return InterviewResponse(reply=result["reply"], done=result.get("done", False), feedback=Feedback.model_validate(feedback) if feedback else None)
+    return InterviewResponse(
+        reply=result["reply"],
+        done=result.get("done", False),
+        feedback=Feedback.model_validate(feedback) if feedback else None,
+    )

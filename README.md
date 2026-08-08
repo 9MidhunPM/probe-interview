@@ -6,15 +6,15 @@ keyed by the caller's `sessionId`.
 
 ## Current status
 
-Phase 2 is implemented. Strengths Finder, Weaknesses Finder, and Topic Planner
+Phase 3 is implemented. Strengths Finder, Weaknesses Finder, and Topic Planner
 run once at session start through Groq, then the OpenAI Interviewer asks from
-the resulting role- and evidence-based topic queue. The graph pauses after each
-question, resumes when the next candidate message is injected, and ends with
-the required structured feedback object.
+the resulting role- and evidence-based topic queue. Groq Response Reviewer
+grades every answer and routes a harder follow-up, simpler rephrase, next topic,
+or final evaluation. The graph pauses after each question and resumes when the
+next candidate message is injected.
 
-Response reviewing, adaptive routing, consistency checks, hardening,
-deployment, and a frontend are intentionally not implemented until their
-respective phases.
+Consistency checks, hardening, deployment, and a frontend are intentionally not
+implemented until their respective phases.
 
 ## Run locally
 

@@ -11,8 +11,11 @@ class InterviewState(TypedDict, total=False):
     strengths: list[str]
     weaknesses: list[str]
     topic_queue: list[dict[str, str]]
+    current_topic_index: int
     transcript: Annotated[list[dict[str, str]], add]
     candidate_message: str | None
+    awaiting_review: bool
+    last_review: dict[str, str]
     turn_count: int
     reply: str
     ready_for_evaluation: bool
