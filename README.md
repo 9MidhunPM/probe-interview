@@ -136,7 +136,11 @@ The frontend build writes to `app/static`, which FastAPI serves at `/`. Use `/cl
 
 ## AI-Assisted Development
 
-Probe Interview was built with AI-assisted development: Claude supported planning and architecture, while GPT-5.6 Terra via OpenCode supported implementation. A fuller AI Usage Log will be added before submission.
+Probe Interview was built through human-directed AI-assisted development. The
+submission-facing [AI Usage Log](AI_USAGE_LOG.md), consolidated
+[prompt ledger](prompt.md), and preserved raw conversation exports in
+[`docs/ai-logs/`](docs/ai-logs/) describe the recorded sessions, decisions,
+verification, and evidence limitations.
 
 ## License
 
