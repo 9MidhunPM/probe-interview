@@ -155,8 +155,18 @@ def end_interview(request: Request, payload: EndInterviewRequest) -> InterviewRe
 def simulate_answer(payload: SimulateAnswerRequest) -> SimulateAnswerResponse:
     style_instruction = {
         "confident": "Give a concise, technically specific answer with a concrete decision or trade-off.",
-        "unsure": "Be candid about uncertainty, but offer a plausible first step and one question you would investigate.",
-        "vague": "Give a short, noncommittal answer that uses a broad technical phrase without defining it.",
+        "unsure": (
+            "Sound like a thoughtful human who is unsure: use a natural hedge such as 'uhh, I think' or "
+            "'my first guess would be'. Include one partially correct idea and one plausible but incomplete or "
+            "slightly mistaken claim, introduced with a hedge such as 'I might be mixing this up'. Keep it to "
+            "two or three spoken-sounding sentences. Do not resolve the uncertainty or turn it into a polished answer."
+        ),
+        "vague": (
+            "Sound very general and human, using language such as 'I'm not sure of the exact working' or "
+            "'I just know that it helps with that kind of thing'. Avoid mechanisms, examples, decisions, "
+            "metrics, comparisons, and technical definitions. Use no more than two short sentences and keep "
+            "the answer noncommittal, generic, and clearly lacking detail."
+        ),
     }[payload.style]
     answer = get_extraction_model_provider().generate(
         instructions=(
