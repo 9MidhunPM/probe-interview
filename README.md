@@ -382,7 +382,7 @@ probe-interview/
   security requirements, and verification expectations.
 - [AI_USAGE_LOG.md](AI_USAGE_LOG.md) is the concise submission-facing AI
   disclosure.
-- [prompt.md](prompt.md) is the detailed prompt, implementation, commit, and
+- [PROMPTS.MD](PROMPTS.MD) is the detailed prompt, implementation, commit, and
   verification ledger.
 - [docs/ai-logs/](docs/ai-logs/) contains the preserved raw conversation
   exports and archived draft.

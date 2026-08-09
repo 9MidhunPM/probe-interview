@@ -7,7 +7,7 @@ acceptance criteria. AI sessions implemented, tested, debugged, and documented
 the resulting system.
 
 This log is deliberately evidence-based. The complete prompt and decision
-ledger is [`prompt.md`](prompt.md). The preserved source exports are in
+ledger is [`PROMPTS.MD`](PROMPTS.MD). The preserved source exports are in
 [`docs/ai-logs/`](docs/ai-logs/).
 
 ## AI Sessions
@@ -33,7 +33,7 @@ exports show a broader and overlapping set of sessions.
 |---|---|---|
 | Core graph | Seven-agent LangGraph interview with checkpointed sessions, personalized planning, adaptive review, consistency checking, and structured evaluation. | `b992bff`, `89247f9`, `38c8bd3`, `b947d82` |
 | Hardening and UI foundation | Rate limiting, payload/token limits, prompt boundaries, validation, browser UI, answer simulation, and final feedback. | `2a7cf14`, `628b78c` |
-| Deployment | Docker/Dokploy/Traefik configuration, no-index protections, and live domain. | PR #1 merge `ccf6848`; source/publish commits are detailed in [`prompt.md`](prompt.md). |
+| Deployment | Docker/Dokploy/Traefik configuration, no-index protections, and live domain. | PR #1 merge `ccf6848`; source/publish commits are detailed in [`PROMPTS.MD`](PROMPTS.MD). |
 | Conversation quality | Peer-framed probing, one-probe-per-topic behavior, specific closing, and conceptual-versus-implementation feedback. | PR #5 merge `4832093` |
 | Observability | Additive per-turn `trace` field and collapsible agent-output UI. | PR #6 merge `abfe7d6` |
 | Frontend evolution | React scene, `/classic`, unified room, persistent composer, onboarding, tutorial, responsive layout, Dr. Probey personality, poses, streaming, and richer summary. | PRs #7-#16 plus direct commits through `2d67cff` |
@@ -79,7 +79,7 @@ reproduced here.
 
 ## Sources
 
-- [`prompt.md`](prompt.md) - consolidated prompt, feature, commit, verification,
+- [`PROMPTS.MD`](PROMPTS.MD) - consolidated prompt, feature, commit, verification,
   attribution, and evidence-gap record.
 - [`docs/ai-logs/opencode-phase-1-setup-2026-08-09.md`](docs/ai-logs/opencode-phase-1-setup-2026-08-09.md) - full Phase 1 through backend/UI foundation export.
 - [`docs/ai-logs/opencode-ui-rebuild-2026-08-09.md`](docs/ai-logs/opencode-ui-rebuild-2026-08-09.md) - full later UI refinement export.

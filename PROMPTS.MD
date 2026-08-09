@@ -193,3 +193,87 @@ At the time of this documentation task, local `HEAD` and the SSH remote
 
 The documentation changes for this provenance record are intentionally
 separate from the application history and must not alter runtime behavior.
+
+## Complete Prompt Inventory
+
+The following inventory includes every `**User**` prompt block in the two
+preserved exports, including short continuation, push, and sub-agent
+publication requests. The line reference points to the complete wording; the
+raw exports remain the authoritative full-text record.
+
+### Phase 1 and Backend Export
+
+1. **P1.1 - Phase 1 setup** (`opencode-phase-1-setup-2026-08-09.md:7`): Read the project specifications, create the repository, implement the two-node Phase 1 graph, exact API contract, checkpointer, environment template, README, commit, push, and curl verification.
+2. **P1.2 - Install without a virtual environment** (`:1611`): Check whether the required libraries can be installed directly with system Python.
+3. **P1.3 - Retry installation** (`:1649`): Try the direct installation again after the user reported that the environment was fixed.
+4. **P1.4 - Verify installed requirements** (`:1675`): Verify the user's reported dependency installation and run the Phase 1 flow.
+5. **P1.5 - Verify pip permissions** (`:1701`): Recheck permissions and install with the newly granted system access.
+6. **P1.6 - Real Phase 1 and Phase 2** (`:1761`): Use live providers, update model defaults, implement setup agents, test personalization, and publish the changes.
+7. **P1.7 - Phase 3 approval** (`:1980`): Proceed with Response Reviewer and adaptive `simplify`, `escalate`, `advance`, and `end` routing.
+8. **P1.8 - Phase 4 approval** (`:2114`): Implement Consistency Checker state, contradiction accumulation, evaluator input, and clean/contradiction live tests.
+9. **P1.9 - Phase 5 and Phase 7 approval** (`:2241`): Add hardening and the frontend while explicitly skipping deployment until later.
+10. **P1.10 - Deployment PR** (`:2411`): Build Docker/Dokploy/Traefik configuration, no-index protections, a selected subdomain, and a review-only PR.
+11. **P1.11 - Create the hosted service** (`:2519`): Create the Dokploy project/application and host the service with the selected domain.
+12. **P1.12 - Conversational quality and temporary gate** (`:2586`): Improve reactions, openings, closings, disengagement handling, and add the temporary password gate while keeping deployment on `main`.
+13. **P1.13 - Continue the active feature work** (`:2772`): Continue with the next implementation, verification, and PR steps.
+14. **P1.14 - Provider migration planning** (`:2859`): Replace normal Groq traffic with cost-appropriate OpenAI models, search for suitable model allocation, and ask clarifying questions before implementation.
+15. **P1.15 - Implement provider migration** (`:2946`): Implement role-based OpenAI routing, retries, mocked tests, usage logging, and production `.env` instructions without changing credentials.
+16. **P1.16 - Strict schema production failure** (`:3076`): Fix the OpenAI `additionalProperties` error centrally for every structured agent, preserve the orchestrator model, test all seven agents, and open a focused PR.
+17. **P1.17 - Conversational review redesign** (`:3162`): Add one targeted probe per topic, peer framing, sequential questions, specific closings, evidence-calibrated evaluation, live tests, and comparison excerpts.
+18. **P1.18 - Agent trace** (`:3320`): Add an additive per-turn `trace` response field, safe structured outputs, a collapsed UI reasoning panel, documentation updates, and contract-preservation tests.
+19. **P1.19 - React frontend rebuild** (`:3446`): Preserve the old interface at `/classic`, build the Vite/React scene, add answer simulation, supplied artwork, poses, trace UI, Docker build support, and live flow tests.
+20. **P1.20 - Restore access to continue** (`:3532`): Continue the React branch after workspace permissions were restored.
+21. **P1.21 - Split interview layout** (`:3641`): Rebuild the scene as interviewer/candidate zones with speech bubbles, editable generated answers, explicit Next gating, and a persistent agent sidebar.
+22. **P1.22 - Stop using isolated clones** (`:3817`): Work in the real workspace, verify write access, attempt Chromium installation, and rebuild the UI as one bright unified room with both characters visible.
+23. **P1.23 - Root access continuation** (`:3864`): Confirm that root access is available and continue the unified-scene repair.
+24. **P1.24 - Interaction polish** (`:4007`): Fix bubble overlap, avatar placement, pacing gates, poses, answer-generator status, Markdown, transcript, feedback modal, and screenshot verification.
+25. **P1.25 - Fixed frame and conversation layout** (`:4136`): Remove the rendered preview, create top/bottom conversation panels, restore a fixed frame, add speaker focus, and open a follow-up PR.
+26. **P1.26 - Composer and speech tails** (`:4219`): Fix the cramped composer, put generated and typed text in one input, add speech tails, and slow interviewer streaming.
+27. **P1.27 - Agent output controls** (`:4289`): Move style buttons beside the composer, align tails, cap generated answers, preserve historical agent output, and open output modals.
+28. **P1.28 - Compact response rail** (`:4352`): Compact controls, align speaker tails, stream candidate answers, map thinking poses correctly, and let the transcript use available space.
+29. **P1.29 - Viewport and onboarding** (`:4417`): Lock the interview viewport, close overlays by clicking outside, hide controls during send, add candidate profiles, and improve the home experience.
+30. **P1.30 - Static frame and intent** (`:4495`): Keep the room fixed, reduce the candidate area, align actions, auto-scroll the transcript, distinguish agent states, and show question intent.
+31. **P1.31 - Direct single-commit workflow** (`:4577`): Restore the missing background, fix composer placement and scrolling, keep intent above the interviewer, and switch from PRs to single commits.
+32. **P1.32 - Always push `main`** (`:4635`): Push the current direct-commit work to `main`.
+33. **P1.33 - Composer clipping** (`:4677`): Rebalance the fixed-height layout so the full Send row is visible at 800px and 900px, with real screenshot confirmation.
+34. **P1.34 - Continue the height fix** (`:4699`): Continue the viewport-budget correction after the initial browser limitation.
+35. **P1.35 - Publish deployment branch** (`:4753`): Publish exactly the requested deployment patches through authenticated GitHub tooling without modifying Dokploy or local files.
+36. **P1.36 - Publish Phase 7** (`:4822`): Publish the Phase 7 tree to `main` and verify the frontend route, static bundle, and README instructions.
+37. **P1.37 - Publish Phase 5** (`:4873`): Publish only the hardening commit, excluding untracked frontend output, and verify limiter/token-cap changes.
+38. **P1.38 - Publish Phase 4** (`:4929`): Publish the consistency-checking snapshot and verify the checker and evaluator flags.
+39. **P1.39 - Publish Phase 3** (`:4979`): Publish the reviewer implementation and conditional routing to `main`.
+40. **P1.40 - Publish Phase 2** (`:5022`): Publish the setup agents, personalization script, and Phase 2 graph edges.
+41. **P1.41 - Publish evaluator fix** (`:5075`): Publish only the evaluator-resumption fix through the authenticated API and verify the invocation.
+42. **P1.42 - Publish the repository** (`:5113`): Publish all tracked Phase 1 files to the empty public repository and verify the remote tree.
+43. **P1.43 - Publish missing documentation** (`:5155`): Add `README.md`, `PRD.md`, and `AGENT.md` to the remote in one authenticated commit.
+
+### UI Rebuild Export
+
+1. **U1 - Vertical layout rebuild** (`opencode-ui-rebuild-2026-08-09.md:7`): Sync the real workspace, establish a `100dvh` grid, screenshot the skeleton, restore all interaction, and make one verified commit.
+2. **U2 - Retry with corrected environment** (`:77`): Restart the server and run the actual API-backed flow instead of mocks.
+3. **U3 - Ignore verification noise** (`:182`): Add targeted ignore rules for screenshots, logs, MCP state, and local tooling output, then push the layout commit.
+4. **U4 - Use SSH** (`:252`): Push the verified commit through Git SSH.
+5. **U5 - Persistent action layout** (`:278`): Replace fixed-height scrolling surfaces, fix intent updates, merge Send/Next into one persistent action, and verify desktop/mobile states.
+6. **U6 - Push the composer fix** (`:407`): Push the verified persistent-composer commit to `main`.
+7. **U7 - Dr. Probey and interview moments** (`:433`): Enlarge response controls, add Dr. Probey's personality, reduce turn count, add occasional moments, and add an approach recap.
+8. **U8 - Push the Dr. Probey pass** (`:576`): Push the single committed personality and pacing change.
+9. **U9 - Home, editor, and Classic parity** (`:602`): Add onboarding, guided candidate editing, and a full-featured `/classic` flow.
+10. **U10 - Character brief and scope clarification** (`:644`): Supply Dr. Probey's full character brief, require a status dropdown based on real data, and approve the `/classic` rebuild.
+11. **U11 - Continue onboarding work** (`:722`): Continue implementation and screenshot verification.
+12. **U12 - Candidate setup scrolling and copy** (`:818`): Make candidate setup scrollable at short heights, expand Dr. Probey's explanation, and explain the named pipeline agents.
+13. **U13 - Long-form landing page** (`:904`): Fix home-page clipping, add narrative sections, technical details, features, a Dr. Probey moment, and a final CTA.
+14. **U14 - Remove the access gate** (`:1015`): Delete the gate and related configuration, preserve rate limits, add the MIT license, rewrite project docs, audit secrets, and verify a gate-free live interview.
+15. **U15 - Mode choice** (`:1193`): Enlarge Dr. Probey artwork and add Scene Mode versus Classic Mode selection with recommendation and explanations.
+16. **U16 - Continue mode-choice work** (`:1252`): Continue browser verification and commit the mode-selection change.
+17. **U17 - Guided tutorial** (`:1459`): Add persisted spotlight coachmarks, skip/replay behavior, responsive positioning, and screenshot verification across the full sequence.
+18. **U18 - Candidate pose investigation** (`:1588`): Find out why the candidate never moves or changes pose.
+19. **U19 - Implement pose restoration** (`:1714`): Restore the candidate pose state and animation behavior identified during the investigation.
+20. **U20 - Continue pose implementation** (`:1746`): Continue wiring the derived pose image state.
+21. **U21 - Continue pose implementation** (`:1770`): Continue the unfinished pose wiring.
+22. **U22 - Continue after handoff** (`:1786`): Continue the candidate pose fix from the previous agent state.
+23. **U23 - Push-status check** (`:1862`): Ask whether the verified pose fix had been pushed.
+24. **U24 - Push the pose fix** (`:1878`): Commit and push the candidate pose restoration.
+25. **U25 - Deterministic poses and richer summary** (`:1904`): Remove character bobbing, enforce rule-based poses, stream answers, add End interview, and expand the summary page.
+26. **U26 - Always push to GitHub** (`:2022`): Commit and push the streaming, pose, end-interview, and summary changes.
+27. **U27 - Slower streams and exact intent** (`:2048`): Slow both streams, restyle and reposition End interview, fix summary columns, preserve idle agent output, align replay, and derive intent from live routing.
+28. **U28 - Human answer personas and intent bubble** (`:2143`): Make unsure/vague generated answers sound human and move the exact intent into a lighter speech bubble below Dr. Probey's answer.
