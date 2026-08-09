@@ -62,6 +62,12 @@ class InterviewRequest(BaseModel):
         return self
 
 
+class EndInterviewRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    sessionId: str = Field(min_length=1)
+
+
 class Feedback(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

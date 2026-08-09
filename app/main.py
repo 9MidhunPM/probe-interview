@@ -17,6 +17,7 @@ from app.graph.graph import interview_graph
 from app.limiting import new_session_limiter
 from app.models import (
     Feedback,
+    EndInterviewRequest,
     InterviewRequest,
     InterviewResponse,
     SimulateAnswerRequest,
@@ -117,6 +118,36 @@ def interview(request: Request, payload: InterviewRequest) -> InterviewResponse:
         done=result.get("done", False),
         feedback=Feedback.model_validate(feedback) if feedback else None,
         trace=trace,
+    )
+
+
+@app.post(
+    "/api/interview/end",
+    response_model=InterviewResponse,
+    response_model_exclude_none=True,
+)
+@limiter.limit(lambda: f"{os.getenv('RATE_LIMIT_REQUESTS_PER_MINUTE', '60')}/minute")
+def end_interview(request: Request, payload: EndInterviewRequest) -> InterviewResponse:
+    config = {"configurable": {"thread_id": payload.sessionId}}
+    snapshot = interview_graph.get_state(config)
+    if not snapshot.values:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No interview exists for this sessionId.")
+    if snapshot.values.get("done"):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="This interview has already completed.")
+
+    trace_start = len(snapshot.values.get("trace", []))
+    resume_config = interview_graph.update_state(
+        config,
+        {"awaiting_review": False, "ready_for_evaluation": True},
+        as_node="interviewer",
+    )
+    result = interview_graph.invoke(None, resume_config)
+    feedback = result.get("feedback")
+    return InterviewResponse(
+        reply=result["reply"],
+        done=result.get("done", False),
+        feedback=Feedback.model_validate(feedback) if feedback else None,
+        trace=result.get("trace", [])[trace_start:],
     )
 
 
