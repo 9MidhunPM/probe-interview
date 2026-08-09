@@ -34,6 +34,7 @@ frontend/node_modules/
 /gate-free-main-feedback-*.png
 /mode-choice-*.png
 /home-bigger-*.png
+/tutorial-*.png
 
 # Ad-hoc local server logs written at the repository root.
 /*.log

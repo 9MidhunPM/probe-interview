@@ -82,19 +82,85 @@ function Feedback({ feedback, approach, onClose }) {
   return <div className="feedback-overlay" role="presentation" onClick={onClose}><section className="feedback-modal" role="dialog" aria-modal="true" aria-labelledby="feedback-title" onClick={(event) => event.stopPropagation()}><header><p className="kicker">Interview complete</p><h2 id="feedback-title">Session feedback</h2><button className="modal-close" type="button" onClick={onClose}>Close</button></header><div className="feedback-body"><p className="feedback-summary">{feedback.summary}</p>{approach.length > 0 && <section className="probey-approach"><h3>Dr. Probey&apos;s approach</h3><ul>{approach.map((item) => <li key={item}>{item}</li>)}</ul></section>}{[['Strengths', feedback.strengths], ['Gaps', feedback.gaps], ['Next steps', feedback.next]].map(([label, items]) => <section key={label}><h3>{label}</h3><ul>{items.map((item) => <li key={item}>{item}</li>)}</ul></section>)}</div></section></div>;
 }
 
-function Trace({ trace }) {
+function Transcript({ transcript }) {
+  return <section className="transcript-panel" data-tutorial="transcript"><header><h3>Transcript</h3><span>{transcript.length} messages</span></header><div className="transcript-log">{transcript.map((entry, index) => <article className={`transcript-message ${entry.speaker === 'Dr. Probey' ? 'from-interviewer' : 'from-candidate'}`} key={`${entry.speaker}-${index}`}><strong>{entry.speaker}</strong><p>{entry.message}</p></article>)}</div></section>;
+}
+
+function Trace({ trace, transcript }) {
   const [open, setOpen] = useState(null);
-  return <aside className="orchestration"><header><p className="kicker">Live graph</p><h2>Reasoning trail</h2><span>{trace.length} agents this turn</span></header><div className="agent-rail">{agentNames.map((agent) => { const entry = trace.find((item) => item.agent === agent); return <section className={`agent-row ${entry ? 'complete' : 'idle'}`} key={agent}><button type="button" disabled={!entry} onClick={() => setOpen(open === agent ? null : agent)}><span className="agent-dot" /><strong>{agent === 'Interviewer' ? 'Dr. Probey' : agent}</strong><small>{entry ? 'view' : 'idle'}</small></button>{open === agent && <pre className="trace-inline">{JSON.stringify(entry.output, null, 2)}</pre>}</section>; })}</div></aside>;
+  return <aside className="orchestration" data-tutorial="trail"><header><p className="kicker">Live graph</p><h2>Reasoning trail</h2><span>{trace.length} agents this turn</span></header><div className="agent-rail">{agentNames.map((agent) => { const entry = trace.find((item) => item.agent === agent); return <section className={`agent-row ${entry ? 'complete' : 'idle'}`} key={agent}><button type="button" disabled={!entry} onClick={() => setOpen(open === agent ? null : agent)}><span className="agent-dot" /><strong>{agent === 'Interviewer' ? 'Dr. Probey' : agent}</strong><small>{entry ? 'view' : 'idle'}</small></button>{open === agent && <pre className="trace-inline">{JSON.stringify(entry.output, null, 2)}</pre>}</section>; })}</div><Transcript transcript={transcript} /></aside>;
+}
+
+const tutorialSteps = [
+  ['speech', "This is Dr. Probey asking your question."],
+  ['intent', "This shows what he's trying to find out with this question."],
+  ['styles', 'Generate a sample answer in this style, or write your own below.'],
+  ['compose', 'Edit the generated answer, or type your own from scratch.'],
+  ['send', "Send your answer, then click again to hear Dr. Probey's response."],
+  ['trail', 'Watch the AI agents working behind the scenes in real time. Click any of them to see their output.'],
+  ['transcript', 'A running plain-text log of the conversation, if you want to scan back.'],
+];
+
+function getTutorialTarget(name) {
+  const target = document.querySelector(`[data-tutorial="${name}"]`);
+  if (!target) return null;
+  const rect = target.getBoundingClientRect();
+  const style = window.getComputedStyle(target);
+  return rect.width && rect.height && style.display !== 'none' && style.visibility !== 'hidden' ? rect : null;
+}
+
+function Tutorial({ onClose }) {
+  const [step, setStep] = useState(0);
+  const [position, setPosition] = useState(null);
+  const current = tutorialSteps[step];
+
+  useEffect(() => {
+    function update() {
+      let next = step;
+      let rect = getTutorialTarget(tutorialSteps[next][0]);
+      while (!rect && next < tutorialSteps.length - 1) {
+        next += 1;
+        rect = getTutorialTarget(tutorialSteps[next][0]);
+      }
+      if (!rect) { onClose(); return; }
+      if (next !== step) { setStep(next); return; }
+      const padding = 8;
+      const width = Math.min(360, window.innerWidth - 24);
+      const left = Math.min(Math.max(12, rect.left + (rect.width - width) / 2), window.innerWidth - width - 12);
+      const besideTrail = tutorialSteps[next][0] === 'trail' && rect.height > window.innerHeight * .65 && rect.left >= width + 24;
+      const below = rect.bottom + 18;
+      const top = besideTrail ? Math.max(12, Math.min(rect.top + 18, window.innerHeight - 170)) : below + 170 <= window.innerHeight ? below : Math.max(12, rect.top - 184);
+      const tooltipLeft = besideTrail ? rect.left - width - 18 : left;
+      setPosition({ left: tooltipLeft, top, width, highlight: { left: Math.max(4, rect.left - padding), top: Math.max(4, rect.top - padding), width: rect.width + padding * 2, height: rect.height + padding * 2 } });
+    }
+    const frame = window.requestAnimationFrame(update);
+    window.addEventListener('resize', update);
+    window.addEventListener('scroll', update, true);
+    return () => { window.cancelAnimationFrame(frame); window.removeEventListener('resize', update); window.removeEventListener('scroll', update, true); };
+  }, [step, onClose]);
+
+  useEffect(() => {
+    function onKeyDown(event) { if (event.key === 'Escape') onClose(); }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [onClose]);
+
+  function advance() { if (step === tutorialSteps.length - 1) onClose(); else setStep((currentStep) => currentStep + 1); }
+  if (!position) return null;
+  return <><div className="tutorial-highlight" aria-hidden="true" style={position.highlight} /><section className="tutorial-tooltip" role="dialog" aria-live="polite" aria-label={`Tutorial step ${step + 1}`} style={{ left: position.left, top: position.top, width: position.width }}><span>Guide {step + 1} of {tutorialSteps.length}</span><p>{current[1]}</p><div><button type="button" onClick={advance}>{step === tutorialSteps.length - 1 ? 'Finish' : 'Next'}</button><button type="button" className="tutorial-skip" onClick={onClose}>Skip tutorial</button></div></section></>;
 }
 
 function InterviewStage({ candidate, response, transcript, trace, busy, generating, onGenerate, onSend, onCloseFeedback }) {
   const [draft, setDraft] = useState('');
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [tutorialOpen, setTutorialOpen] = useState(false);
   const approach = response.trace?.find((entry) => entry.agent === 'Evaluator')?.output?.approach || [];
   useEffect(() => { if (response.done && response.feedback) setFeedbackOpen(true); }, [response]);
+  useEffect(() => { if (window.localStorage.getItem('probe_tutorial_seen') !== 'true') setTutorialOpen(true); }, []);
   async function generate(style) { const answer = await onGenerate(style); setDraft(answer); }
   async function submit(event) { event.preventDefault(); if (!draft.trim()) return; const answer = draft.trim(); setDraft(''); await onSend(answer); }
-  return <main className="scene-app"><header className="app-header"><a href="/classic">Classic</a><span>Probe / live practice</span><strong>{candidate.member.name}</strong></header><div className="app-shell"><section className="scene-pane"><section className="interviewer-panel"><div className="turn-speech"><Markdown>{response.reply}</Markdown></div></section><section className="scene-frame" aria-label="Interview room"><div className="scene-camera"><img className="scene-backdrop" src={asset('interview-room.png')} alt="" /><div className="speaker interviewer-speaker is-active"><img className="scene-character interviewer-character" src={asset(busy ? 'interviewer-thinking.png' : 'interviewer-speaking.png')} alt="Dr. Probey" /></div><div className="speaker candidate-speaker"><img className="scene-character candidate-character" src={asset('candidate-idle.png')} alt={candidate.member.name} /></div></div></section><form className="candidate-panel" onSubmit={submit}><p className="turn-label">{candidate.member.name}</p><section className="composer-slot"><span>{response.done ? 'Interview complete' : 'Compose your response'}</span><textarea name="candidate-response" value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="Write or edit a response" disabled={busy || response.done} /></section><div className="style-rail">{responseStyles.map(([style, label]) => <button type="button" key={style} onClick={() => generate(style)} disabled={busy || response.done}>{generating === style ? 'Generating...' : label}</button>)}</div><button className="primary-action" disabled={busy || response.done || !draft.trim()}>{response.done ? 'Interview complete' : busy ? 'Dr. Probey is thinking...' : 'Send answer'}</button></form></section><Trace trace={trace} /></div>{feedbackOpen && <Feedback feedback={response.feedback} approach={approach} onClose={() => { setFeedbackOpen(false); onCloseFeedback(); }} />}</main>;
+  function closeTutorial() { window.localStorage.setItem('probe_tutorial_seen', 'true'); setTutorialOpen(false); }
+  return <main className="scene-app"><header className="app-header"><a href="/classic">Classic</a><span>Probe / live practice</span><button type="button" className="replay-tutorial" onClick={() => setTutorialOpen(true)}>Replay tutorial</button><strong>{candidate.member.name}</strong></header><div className="app-shell"><section className="scene-pane"><section className="interviewer-panel"><div className="turn-speech" data-tutorial="speech"><Markdown>{response.reply}</Markdown></div></section><section className="scene-frame" aria-label="Interview room"><div className="scene-camera"><img className="scene-backdrop" src={asset('interview-room.png')} alt="" /><div className="speaker interviewer-speaker is-active"><img className="scene-character interviewer-character" src={asset(busy ? 'interviewer-thinking.png' : 'interviewer-speaking.png')} alt="Dr. Probey" /></div><div className="question-intent" data-tutorial="intent"><strong>Question intent</strong><span>Understand the reasoning behind your approach.</span></div><div className="speaker candidate-speaker"><img className="scene-character candidate-character" src={asset('candidate-idle.png')} alt={candidate.member.name} /></div></div></section><form className="candidate-panel" onSubmit={submit}><p className="turn-label">{candidate.member.name}</p><section className="composer-slot" data-tutorial="compose"><span>{response.done ? 'Interview complete' : 'Compose your response'}</span><textarea name="candidate-response" value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="Write or edit a response" disabled={busy || response.done} /></section><div className="style-rail" data-tutorial="styles">{responseStyles.map(([style, label]) => <button type="button" key={style} onClick={() => generate(style)} disabled={busy || response.done}>{generating === style ? 'Generating...' : label}</button>)}</div><button className="primary-action" data-tutorial="send" disabled={busy || response.done || !draft.trim()}>{response.done ? 'Interview complete' : busy ? 'Dr. Probey is thinking...' : 'Send answer'}</button></form></section><Trace trace={trace} transcript={transcript} /></div>{tutorialOpen && <Tutorial onClose={closeTutorial} />}{feedbackOpen && <Feedback feedback={response.feedback} approach={approach} onClose={() => { setFeedbackOpen(false); onCloseFeedback(); }} />}</main>;
 }
 
 function App() {
