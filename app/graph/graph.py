@@ -101,6 +101,7 @@ def interviewer_node(state: InterviewState) -> dict:
                     "reply": question,
                     "topic": topic["topic"],
                     "direction": last_review.get("signal"),
+                    "intent": _question_intent(topic["topic"], last_review),
                 },
             }
         ],
@@ -259,6 +260,21 @@ def build_graph():
 
 def _max_conversation_turns() -> int:
     return max(5, int(os.getenv("MAX_TURNS", "15")))
+
+
+def _question_intent(topic: str, last_review: dict) -> str:
+    signal = last_review.get("signal")
+    rationale = last_review.get("rationale")
+    probe_target = last_review.get("probe_target")
+    if signal == "probe":
+        return f"Probe {probe_target or topic} more deeply. {rationale or 'Test the reasoning behind the claim.'}"
+    if signal == "escalate":
+        return f"Raise the difficulty on {topic}. {rationale or 'Test whether the candidate can handle a harder implementation or trade-off.'}"
+    if signal == "advance":
+        return f"Move to {topic}. {rationale or 'The previous topic has enough evidence to continue.'}"
+    if signal == "check_in":
+        return f"Check the candidate’s footing on {topic}. {rationale or 'Clarify uncertainty before pushing deeper.'}"
+    return f"Establish a baseline for {topic} before choosing the next probe."
 
 
 def _probey_approach(review_history: list[dict]) -> list[str]:
